@@ -1820,6 +1820,7 @@ int main(int argc, char** argv)
     // pcd_writer.writeBinary(corner_filename, corner_points);
     // }
 
+
     #ifndef DEPLOY
     vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;    
     FILE *fp2;
