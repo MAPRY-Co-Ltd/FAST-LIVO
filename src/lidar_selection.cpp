@@ -203,7 +203,7 @@ void LidarSelector::addSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
 
     // double t_b3 = omp_get_wtime() - t0;
 
-    printf("[ VIO ]: Add %d 3D points.\n", add);
+    //printf("[ VIO ]: Add %d 3D points.\n", add);
     // printf("pg.size: %d \n", pg->size());
     // printf("B1. : %.6lf \n", t_b1);
     // printf("B2. : %.6lf \n", t_b2);
@@ -595,7 +595,7 @@ void LidarSelector::addFromSparseMap(cv::Mat img, PointCloudXYZI::Ptr pg)
     // double t3 = omp_get_wtime();
     // cout<<"C. addSubSparseMap: "<<t3-t2<<endl;
     // cout<<"depthcontinuous: C1 "<<t_2<<" C2 "<<t_3<<" C3 "<<t_4<<" C4 "<<t_5<<endl;
-    printf("[ VIO ]: choose %d points from sub_sparse_map.\n", int(sub_sparse_map->index.size()));
+    //printf("[ VIO ]: choose %d points from sub_sparse_map.\n", int(sub_sparse_map->index.size()));
 }
 
 bool LidarSelector::align2D(
@@ -1083,8 +1083,8 @@ void LidarSelector::detect(cv::Mat img, PointCloudXYZI::Ptr pg)
     frame_cont ++;
     ave_total = ave_total * (frame_cont - 1) / frame_cont + (t2 - t1) / frame_cont;
 
-    printf("[ VIO ]: time: addFromSparseMap: %0.6f addSparseMap: %0.6f ComputeJ: %0.6f addObservation: %0.6f total time: %0.6f ave_total: %0.6f.\n"
-    , t3-t1, t4-t3, t5-t4, t2-t5, t2-t1);
+    // printf("[ VIO ]: time: addFromSparseMap: %0.6f addSparseMap: %0.6f ComputeJ: %0.6f addObservation: %0.6f total time: %0.6f ave_total: %0.6f.\n"
+    // , t3-t1, t4-t3, t5-t4, t2-t5, t2-t1);
 
     display_keypatch(t2-t1);
 } 

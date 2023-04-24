@@ -424,7 +424,7 @@ void standard_pcl_cbk(const sensor_msgs::PointCloud2::ConstPtr &msg)
     PointCloudXYZI::Ptr  ptr(new PointCloudXYZI());
     p_pre->process(msg, ptr);
     // ROS_INFO("get point cloud at time: %.6f and size: %d", msg->header.stamp.toSec() - 0.1, ptr->points.size());
-    printf("[ INFO ]: get point cloud at time: %.6f and size: %d.\n", msg->header.stamp.toSec(), int(ptr->points.size()));
+    //printf("[ INFO ]: get point cloud at time: %.6f and size: %d.\n", msg->header.stamp.toSec(), int(ptr->points.size()));
     lidar_buffer.push_back(ptr);
     // time_buffer.push_back(msg->header.stamp.toSec() - 0.1);
     // last_timestamp_lidar = msg->header.stamp.toSec() - 0.1;
@@ -442,7 +442,7 @@ void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg)
         ROS_ERROR("lidar loop back, clear buffer");
         lidar_buffer.clear();
     }
-    printf("[ INFO ]: get point cloud at time: %.6f.\n", msg->header.stamp.toSec());
+    //printf("[ INFO ]: get point cloud at time: %.6f.\n", msg->header.stamp.toSec());
     PointCloudXYZI::Ptr ptr(new PointCloudXYZI());
     p_pre->process(msg, ptr);
     lidar_buffer.push_back(ptr);
@@ -493,7 +493,7 @@ void img_cbk(const sensor_msgs::ImageConstPtr& msg)
     {
         return;
     }
-    printf("[ INFO ]: get img at time: %.6f.\n", msg->header.stamp.toSec());
+    //printf("[ INFO ]: get img at time: %.6f.\n", msg->header.stamp.toSec());
     if (msg->header.stamp.toSec() < last_timestamp_img)
     {
         ROS_ERROR("img loop back, clear buffer");
@@ -703,6 +703,8 @@ void map_incremental()
 
 // PointCloudXYZRGB::Ptr pcl_wait_pub_RGB(new PointCloudXYZRGB(500000, 1));
 PointCloudXYZI::Ptr pcl_wait_pub(new PointCloudXYZI());
+PointCloudXYZRGB::Ptr pcl_wait_save_rgb(new PointCloudXYZRGB());
+PointCloudXYZI::Ptr pcl_wait_save(new PointCloudXYZI());
 void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_selection::LidarSelectorPtr lidar_selector)
 {
     // PointCloudXYZI::Ptr laserCloudFullRes(dense_map_en ? feats_undistort : feats_down_body);
@@ -740,6 +742,8 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
             }
 
         }
+
+        *pcl_wait_save_rgb += *laserCloudWorldRGB;
 
     }
     // else
@@ -1132,6 +1136,9 @@ int main(int argc, char** argv)
     readParameters(nh);
     cout<<"debug:"<<debug<<" MIN_IMG_COUNT: "<<MIN_IMG_COUNT<<endl;
     pcl_wait_pub->clear();
+    pcl_wait_save->clear();
+    pcl_wait_save_rgb->clear();
+
     // pcl_visual_wait_pub->clear();
     ros::Subscriber sub_pcl = p_pre->lidar_type == AVIA ? \
         nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : \
@@ -1312,13 +1319,18 @@ int main(int argc, char** argv)
         {
             int size = feats_undistort->points.size();
         }
+        
+        if(!fast_lio_is_ready){
+            cout<<"FAST-LIO Ready Slam Start"<<endl;
+        }
+
         fast_lio_is_ready = true;
         flg_EKF_inited = (LidarMeasures.lidar_beg_time - first_lidar_time) < INIT_TIME ? \
                         false : true;
 
         if (! LidarMeasures.is_lidar_end) 
         {
-            cout<<"[ VIO ]: Raw feature num: "<<pcl_wait_pub->points.size() << "." << endl;
+            //cout<<"[ VIO ]: Raw feature num: "<<pcl_wait_pub->points.size() << "." << endl;
             if (first_lidar_time<10)
             {
                 continue;
@@ -1431,7 +1443,7 @@ int main(int argc, char** argv)
         int featsFromMapNum = featsFromMap->points.size();
     #endif
         feats_down_size = feats_down_body->points.size();
-        cout<<"[ LIO ]: Raw feature num: "<<feats_undistort->points.size()<<" downsamp num "<<feats_down_size<<" Map num: "<<featsFromMapNum<< "." << endl;
+        //cout<<"[ LIO ]: Raw feature num: "<<feats_undistort->points.size()<<" downsamp num "<<feats_down_size<<" Map num: "<<featsFromMapNum<< "." << endl;
 
         /*** ICP and iterated Kalman filter update ***/
         normvec->resize(feats_down_size);
@@ -1475,7 +1487,7 @@ int main(int argc, char** argv)
         
         /*** iterated state estimation ***/
         #ifdef MP_EN
-        printf("[ LIO ]: Using multi-processor, used core number: %d.\n", MP_PROC_NUM);
+       // printf("[ LIO ]: Using multi-processor, used core number: %d.\n", MP_PROC_NUM);
         #endif
         double t_update_start = omp_get_wtime();
         #ifdef USE_IKFOM
@@ -1758,6 +1770,10 @@ int main(int argc, char** argv)
         }
         *pcl_wait_pub = *laserCloudWorld;
 
+        if(!img_en){
+            *pcl_wait_save += *pcl_wait_pub;
+        }
+
         publish_frame_world(pubLaserCloudFullRes);
         // publish_visual_world_map(pubVisualCloud);
         publish_effect_world(pubLaserCloudEffect);
@@ -1789,7 +1805,7 @@ int main(int argc, char** argv)
         s_plot5[time_log_counter] = t5 - t0;
         time_log_counter ++;
         // cout<<"[ mapping ]: time: fov_check "<< fov_check_time <<" fov_check and readd: "<<t1-t0<<" match "<<aver_time_match<<" solve "<<aver_time_solve<<" ICP "<<t3-t1<<" map incre "<<t5-t3<<" total "<<aver_time_consu << "icp:" << aver_time_icp << "construct H:" << aver_time_const_H_time <<endl;
-        printf("[ LIO ]: time: fov_check: %0.6f fov_check and readd: %0.6f match: %0.6f solve: %0.6f  ICP: %0.6f  map incre: %0.6f total: %0.6f icp: %0.6f construct H: %0.6f.\n",fov_check_time,t1-t0,aver_time_match,aver_time_solve,t3-t1,t5-t3,aver_time_consu,aver_time_icp, aver_time_const_H_time);
+        //printf("[ LIO ]: time: fov_check: %0.6f fov_check and readd: %0.6f match: %0.6f solve: %0.6f  ICP: %0.6f  map incre: %0.6f total: %0.6f icp: %0.6f construct H: %0.6f.\n",fov_check_time,t1-t0,aver_time_match,aver_time_solve,t3-t1,t5-t3,aver_time_consu,aver_time_icp, aver_time_const_H_time);
         if (lidar_en)
         {
             euler_cur = RotMtoEuler(state.rot_end);
@@ -1820,6 +1836,19 @@ int main(int argc, char** argv)
     // pcd_writer.writeBinary(corner_filename, corner_points);
     // }
 
+    if (pcl_wait_pub->size() > 0)
+    {
+        string save_file = root_dir + "/scans.pcd";
+        pcl::PCDWriter pcd_writer;
+
+        if(img_en){
+            pcd_writer.writeBinary(save_file, *pcl_wait_save_rgb);
+        }else {
+            pcd_writer.writeBinary(save_file, *pcl_wait_save);
+        }
+
+        cout << "pcd file save done" <<endl;
+    }
 
     #ifndef DEPLOY
     vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;    
@@ -1850,7 +1879,7 @@ int main(int argc, char** argv)
         // plt::pause(0.5);
         // plt::close();
     }
-    cout << "no points saved" << endl;
+    //cout << "no points saved" << endl;
     #endif
 
     return 0;
