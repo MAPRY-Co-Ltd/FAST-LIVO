@@ -168,6 +168,59 @@ PointCloudXYZI::Ptr normvec(new PointCloudXYZI());
 PointCloudXYZI::Ptr laserCloudOri(new PointCloudXYZI());
 PointCloudXYZI::Ptr corr_normvect(new PointCloudXYZI());
 
+
+struct CustomPointT {
+    PCL_ADD_POINT4D; // x, y, z, and padding
+    PCL_ADD_RGB;
+    PCL_ADD_INTENSITY;
+    float timestamp;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    inline CustomPointT() {
+        x = y = z = 0;
+        data[3] = 0;
+        intensity = 0.0f;
+        r = g = b = 255;
+        timestamp = 0;
+    }
+
+    inline CustomPointT(const CustomPointT& p) {
+        x = p.x;
+        y = p.y;
+        z = p.z;
+        intensity = p.intensity;
+        r = p.r;
+        g = p.g;
+        b = p.b;
+        timestamp = p.timestamp;
+    }
+} EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(
+    CustomPointT,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (uint8_t, r, r)
+    (uint8_t, g, g)
+    (uint8_t, b, b)
+    (float, intensity, intensity)
+    (float, timestamp, timestamp)
+)
+
+// // PCLのPointXYZI構造体を継承して、新たにTimePointT構造体を作成
+// struct TimePointT : public pcl::PointXYZRGB
+// {
+//     double timestamp; // タイムスタンプ
+// };
+
+// // PCLのPointCloudXYZI構造体を継承して、新たにTimePointCloudT構造体を作成
+// struct TimePointCloudT : public pcl::PointCloud<TimePointT>
+// {
+//   double timestamp; // タイムスタンプ
+// };
+
 pcl::VoxelGrid<PointType> downSizeFilterSurf;
 pcl::VoxelGrid<PointType> downSizeFilterMap;
 
@@ -705,6 +758,9 @@ void map_incremental()
 PointCloudXYZI::Ptr pcl_wait_pub(new PointCloudXYZI());
 PointCloudXYZRGB::Ptr pcl_wait_save_rgb(new PointCloudXYZRGB());
 PointCloudXYZI::Ptr pcl_wait_save(new PointCloudXYZI());
+pcl::PointCloud<CustomPointT>::Ptr pcd_wait_save_rgbit(new pcl::PointCloud<CustomPointT>());
+//CustomPointCloud::Ptr pcd_wait_save_rgbit(new CustomPointCloud());
+
 void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_selection::LidarSelectorPtr lidar_selector)
 {
     // PointCloudXYZI::Ptr laserCloudFullRes(dense_map_en ? feats_undistort : feats_down_body);
@@ -719,12 +775,27 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
     // }
     uint size = pcl_wait_pub->points.size();
     PointCloudXYZRGB::Ptr laserCloudWorldRGB(new PointCloudXYZRGB(size, 1));
+    //TimePointCloudT::Ptr laserCloudWorldRGB2(new TimePointCloudT(size, 1));
+
+    //CustomPointT::Ptr laserCloudWorldRGB2(new CustomPointT(size, 1));
+    //pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB2(new pcl::PointCloud<CustomPointT>(size, 1));
+    pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB2(new pcl::PointCloud<CustomPointT>());
+    //CustomPointCloud::Ptr laserCloudWorldRGB2(new CustomPointCloud(size, 1));
     if(img_en)
     {
         laserCloudWorldRGB->clear();
+        laserCloudWorldRGB2->clear();
         for (int i=0; i<size; i++)
         {
             PointTypeRGB pointRGB;
+            CustomPointT pointT;
+
+            pointT.x = pcl_wait_pub->points[i].x;
+            pointT.y = pcl_wait_pub->points[i].y;
+            pointT.z = pcl_wait_pub->points[i].z;
+            pointT.intensity = pcl_wait_pub->points[i].intensity;
+            pointT.timestamp = 1.0;
+
             pointRGB.x =  pcl_wait_pub->points[i].x;
             pointRGB.y =  pcl_wait_pub->points[i].y;
             pointRGB.z =  pcl_wait_pub->points[i].z;
@@ -738,12 +809,17 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
                 pointRGB.r = pixel[2];
                 pointRGB.g = pixel[1];
                 pointRGB.b = pixel[0];
+                pointT.r = pixel[2];
+                pointT.g = pixel[1];
+                pointT.b = pixel[0];
+
+                laserCloudWorldRGB2->push_back(pointT);
                 laserCloudWorldRGB->push_back(pointRGB);
             }
-
         }
 
         *pcl_wait_save_rgb += *laserCloudWorldRGB;
+        *pcd_wait_save_rgbit += *laserCloudWorldRGB2;
 
     }
     // else
@@ -1138,6 +1214,7 @@ int main(int argc, char** argv)
     pcl_wait_pub->clear();
     pcl_wait_save->clear();
     pcl_wait_save_rgb->clear();
+    pcd_wait_save_rgbit->clear();
 
     // pcl_visual_wait_pub->clear();
     ros::Subscriber sub_pcl = p_pre->lidar_type == AVIA ? \
@@ -1842,7 +1919,9 @@ int main(int argc, char** argv)
         pcl::PCDWriter pcd_writer;
 
         if(img_en){
-            pcd_writer.writeBinary(save_file, *pcl_wait_save_rgb);
+            //pcd_writer.writeBinary(save_file, *pcl_wait_save_rgb);
+            pcl::io::savePCDFileASCII(save_file, *pcd_wait_save_rgbit);
+            //pcd_writer.writeBinary(save_file, *pcd_wait_save_rgbit);
         }else {
             pcd_writer.writeBinary(save_file, *pcl_wait_save);
         }
