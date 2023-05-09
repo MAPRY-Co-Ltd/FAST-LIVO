@@ -170,10 +170,18 @@ PointCloudXYZI::Ptr corr_normvect(new PointCloudXYZI());
 
 
 struct CustomPointT {
-    PCL_ADD_POINT4D; // x, y, z, and padding
-    PCL_ADD_RGB;
+    PCL_ADD_POINT4D;
+    union {
+        struct {
+            uint8_t b;
+            uint8_t g;
+            uint8_t r;
+        };
+        float rgb;
+    };
     PCL_ADD_INTENSITY;
-    float timestamp;
+    uint32_t timestamp_sec;
+    uint32_t timestamp_nsec;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -182,7 +190,7 @@ struct CustomPointT {
         data[3] = 0;
         intensity = 0.0f;
         r = g = b = 255;
-        timestamp = 0;
+        timestamp_sec = timestamp_nsec = 0;
     }
 
     inline CustomPointT(const CustomPointT& p) {
@@ -193,7 +201,8 @@ struct CustomPointT {
         r = p.r;
         g = p.g;
         b = p.b;
-        timestamp = p.timestamp;
+        timestamp_sec = p.timestamp_sec;
+        timestamp_nsec = p.timestamp_nsec;
     }
 } EIGEN_ALIGN16;
 
@@ -202,24 +211,11 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
     (float, x, x)
     (float, y, y)
     (float, z, z)
-    (uint8_t, r, r)
-    (uint8_t, g, g)
-    (uint8_t, b, b)
+    (float, rgb, rgb)
     (float, intensity, intensity)
-    (float, timestamp, timestamp)
+    (uint32_t, timestamp_sec, timestamp_sec)
+    (uint32_t, timestamp_nsec, timestamp_nsec)
 )
-
-// // PCLのPointXYZI構造体を継承して、新たにTimePointT構造体を作成
-// struct TimePointT : public pcl::PointXYZRGB
-// {
-//     double timestamp; // タイムスタンプ
-// };
-
-// // PCLのPointCloudXYZI構造体を継承して、新たにTimePointCloudT構造体を作成
-// struct TimePointCloudT : public pcl::PointCloud<TimePointT>
-// {
-//   double timestamp; // タイムスタンプ
-// };
 
 pcl::VoxelGrid<PointType> downSizeFilterSurf;
 pcl::VoxelGrid<PointType> downSizeFilterMap;
@@ -343,7 +339,7 @@ void pointBodyToWorld(const Matrix<T, 3, 1> &pi, Matrix<T, 3, 1> &po)
     po[2] = p_global(2);
 }
 
-void RGBpointBodyToWorld(PointType const * const pi, PointType * const po)
+void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  CustomPointT* const c_po)
 {
     V3D p_body(pi->x, pi->y, pi->z);
     #ifdef USE_IKFOM
@@ -352,10 +348,21 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po)
     #else
     V3D p_global(state.rot_end * (p_body + Lidar_offset_to_IMU) + state.pos_end);
     #endif
+
+    ros::Time current_time = ros::Time().fromSec(lidar_end_time);
+
     po->x = p_global(0);
     po->y = p_global(1);
     po->z = p_global(2);
     po->intensity = pi->intensity;
+
+    c_po->x = po->x;
+    c_po->y = po->y;
+    c_po->z = po->z;
+
+    c_po->intensity = pi->intensity;
+    c_po->timestamp_sec = current_time.sec;
+    c_po->timestamp_nsec = current_time.nsec;
 
     float intensity = pi->intensity;
     intensity = intensity - floor(intensity);
@@ -686,56 +693,6 @@ bool sync_packages(LidarMeasureGroup &meas)
     }
     // ROS_ERROR("out sync");
     return true;
-    // if (lidar_buffer.empty() || imu_buffer.empty()) {
-    //     return false;
-    // }
-
-    // /*** push a lidar scan ***/
-    // if(!lidar_pushed)
-    // {
-    //     meas.lidar = lidar_buffer.front();
-    //     if(meas.lidar->points.size() <= 1)
-    //     {
-    //         lidar_buffer.pop_front();
-    //         return false;
-    //     }
-    //     meas.lidar_beg_time = time_buffer.front();
-    //     lidar_end_time = meas.lidar_beg_time + meas.lidar->points.back().curvature / double(1000);
-    //     lidar_pushed = true;
-    // }
-
-    // if (last_timestamp_imu < lidar_end_time)
-    // {
-    //     return false;
-    // }
-
-    // /*** push imu data, and pop from imu buffer ***/
-    // double imu_time = imu_buffer.front()->header.stamp.toSec();
-    // meas.imu.clear();
-    // while ((!imu_buffer.empty()) && (imu_time < lidar_end_time))
-    // {
-    //     imu_time = imu_buffer.front()->header.stamp.toSec();
-    //     if(imu_time > lidar_end_time + 0.02) break;
-    //     meas.imu.push_back(imu_buffer.front());
-    //     imu_buffer.pop_front();
-    // }
-    // meas.img.clear();
-    // cout<<"lidar_end_time"<<setprecision(15)<<lidar_end_time<<endl;
-    // cout<<"meas.lidar_beg_time:"<<meas.lidar_beg_time<<endl;
-    // double img_time = img_buffer.front()->header.stamp.toSec();
-    // while ((!img_buffer.empty()) && (img_time < lidar_end_time))
-    // {
-    //     img_time = img_buffer.front()->header.stamp.toSec();
-    //     cout<<"img_buffer.size():"<<img_buffer.size()<<endl;
-    //     cout<<"img_time:"<<setprecision(15)<<img_time<<endl;
-    //     if(img_time > lidar_end_time + 0.02) break;
-    //     meas.img.push_back(img_buffer.front());
-    //     img_buffer.pop_front();
-    // }
-    // cout<<"meas.img.size():"<<meas.img.size()<<endl;
-    // lidar_buffer.pop_front();
-    // time_buffer.pop_front();
-    // lidar_pushed = false;
 }
 
 void map_incremental()
@@ -754,79 +711,62 @@ void map_incremental()
 #endif
 }
 
-// PointCloudXYZRGB::Ptr pcl_wait_pub_RGB(new PointCloudXYZRGB(500000, 1));
 PointCloudXYZI::Ptr pcl_wait_pub(new PointCloudXYZI());
-PointCloudXYZRGB::Ptr pcl_wait_save_rgb(new PointCloudXYZRGB());
-PointCloudXYZI::Ptr pcl_wait_save(new PointCloudXYZI());
+pcl::PointCloud<CustomPointT>::Ptr pcl_wait_rgbit(new pcl::PointCloud<CustomPointT>());
 pcl::PointCloud<CustomPointT>::Ptr pcd_wait_save_rgbit(new pcl::PointCloud<CustomPointT>());
-//CustomPointCloud::Ptr pcd_wait_save_rgbit(new CustomPointCloud());
 
 void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_selection::LidarSelectorPtr lidar_selector)
 {
-    // PointCloudXYZI::Ptr laserCloudFullRes(dense_map_en ? feats_undistort : feats_down_body);
-    // int size = laserCloudFullRes->points.size();
-    // if(size==0) return;
-    // PointCloudXYZI::Ptr laserCloudWorld( new PointCloudXYZI(size, 1));
+    //uint size = pcl_wait_pub->points.size();
+    uint size = pcl_wait_rgbit->points.size();
 
-    // for (int i = 0; i < size; i++)
-    // {
-    //     RGBpointBodyToWorld(&laserCloudFullRes->points[i], \
-    //                         &laserCloudWorld->points[i]);
-    // }
-    uint size = pcl_wait_pub->points.size();
     PointCloudXYZRGB::Ptr laserCloudWorldRGB(new PointCloudXYZRGB(size, 1));
-    //TimePointCloudT::Ptr laserCloudWorldRGB2(new TimePointCloudT(size, 1));
-
-    //CustomPointT::Ptr laserCloudWorldRGB2(new CustomPointT(size, 1));
-    //pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB2(new pcl::PointCloud<CustomPointT>(size, 1));
     pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB2(new pcl::PointCloud<CustomPointT>());
-    //CustomPointCloud::Ptr laserCloudWorldRGB2(new CustomPointCloud(size, 1));
     if(img_en)
     {
         laserCloudWorldRGB->clear();
         laserCloudWorldRGB2->clear();
+        //ros::Time current_time = ros::Time::now();
+        //uint32_t timestamp_sec = current_time.sec;
+        //uint32_t timestamp_nsec = current_time.nsec;
         for (int i=0; i<size; i++)
         {
             PointTypeRGB pointRGB;
             CustomPointT pointT;
 
-            pointT.x = pcl_wait_pub->points[i].x;
-            pointT.y = pcl_wait_pub->points[i].y;
-            pointT.z = pcl_wait_pub->points[i].z;
-            pointT.intensity = pcl_wait_pub->points[i].intensity;
-            pointT.timestamp = 1.0;
+            pointT.x = pcl_wait_rgbit->points[i].x;
+            pointT.y = pcl_wait_rgbit->points[i].y;
+            pointT.z = pcl_wait_rgbit->points[i].z;
+            pointT.intensity = pcl_wait_rgbit->points[i].intensity;
+            pointT.timestamp_sec = pcl_wait_rgbit->points[i].timestamp_sec;
+            pointT.timestamp_nsec = pcl_wait_rgbit->points[i].timestamp_nsec;
 
-            pointRGB.x =  pcl_wait_pub->points[i].x;
-            pointRGB.y =  pcl_wait_pub->points[i].y;
-            pointRGB.z =  pcl_wait_pub->points[i].z;
-            V3D p_w(pcl_wait_pub->points[i].x, pcl_wait_pub->points[i].y, pcl_wait_pub->points[i].z);
+            pointRGB.x =  pcl_wait_rgbit->points[i].x;
+            pointRGB.y =  pcl_wait_rgbit->points[i].y;
+            pointRGB.z =  pcl_wait_rgbit->points[i].z;
+
+            V3D p_w(pcl_wait_rgbit->points[i].x, pcl_wait_rgbit->points[i].y, pcl_wait_rgbit->points[i].z);
             V2D pc(lidar_selector->new_frame_->w2c(p_w));
             if (lidar_selector->new_frame_->cam_->isInFrame(pc.cast<int>(),0))
             {
-                // cv::Mat img_cur = lidar_selector->new_frame_->img();
                 cv::Mat img_rgb = lidar_selector->img_rgb;
                 V3F pixel = lidar_selector->getpixel(img_rgb, pc);
                 pointRGB.r = pixel[2];
                 pointRGB.g = pixel[1];
                 pointRGB.b = pixel[0];
+
                 pointT.r = pixel[2];
                 pointT.g = pixel[1];
                 pointT.b = pixel[0];
 
-                laserCloudWorldRGB2->push_back(pointT);
                 laserCloudWorldRGB->push_back(pointRGB);
+                laserCloudWorldRGB2->push_back(pointT);
             }
         }
-
-        *pcl_wait_save_rgb += *laserCloudWorldRGB;
         *pcd_wait_save_rgbit += *laserCloudWorldRGB2;
 
     }
-    // else
-    // {
-    //*pcl_wait_pub = *laserCloudWorld;
-    // }
-    // mtx_buffer_pointcloud.lock();
+
     if (1)//if(publish_count >= PUBFRAME_PERIOD)
     {
         sensor_msgs::PointCloud2 laserCloudmsg;
@@ -843,9 +783,7 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
         laserCloudmsg.header.frame_id = "camera_init";
         pubLaserCloudFullRes.publish(laserCloudmsg);
         publish_count -= PUBFRAME_PERIOD;
-        // pcl_wait_pub->clear();
     }
-    // mtx_buffer_pointcloud.unlock();
 }
 
 void publish_frame_world(const ros::Publisher & pubLaserCloudFullRes)
@@ -942,10 +880,14 @@ void publish_effect_world(const ros::Publisher & pubLaserCloudEffect)
 {
     PointCloudXYZI::Ptr laserCloudWorld( \
                     new PointCloudXYZI(effct_feat_num, 1));
+
+    pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB(new pcl::PointCloud<CustomPointT>(effct_feat_num, 1));
+    
     for (int i = 0; i < effct_feat_num; i++)
     {
         RGBpointBodyToWorld(&laserCloudOri->points[i], \
-                            &laserCloudWorld->points[i]);
+                            &laserCloudWorld->points[i], \
+                            &laserCloudWorldRGB->points[i]);
     }
     sensor_msgs::PointCloud2 laserCloudFullRes3;
     pcl::toROSMsg(*laserCloudWorld, laserCloudFullRes3);
@@ -1212,8 +1154,7 @@ int main(int argc, char** argv)
     readParameters(nh);
     cout<<"debug:"<<debug<<" MIN_IMG_COUNT: "<<MIN_IMG_COUNT<<endl;
     pcl_wait_pub->clear();
-    pcl_wait_save->clear();
-    pcl_wait_save_rgb->clear();
+    pcl_wait_rgbit->clear();
     pcd_wait_save_rgbit->clear();
 
     // pcl_visual_wait_pub->clear();
@@ -1840,19 +1781,24 @@ int main(int argc, char** argv)
         int size = laserCloudFullRes->points.size();
         PointCloudXYZI::Ptr laserCloudWorld( new PointCloudXYZI(size, 1));
 
+        pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB(new pcl::PointCloud<CustomPointT>(size, 1));
+
         for (int i = 0; i < size; i++)
         {
             RGBpointBodyToWorld(&laserCloudFullRes->points[i], \
-                                &laserCloudWorld->points[i]);
+                                &laserCloudWorld->points[i], \
+                                &laserCloudWorldRGB->points[i]);
         }
+
         *pcl_wait_pub = *laserCloudWorld;
+        *pcl_wait_rgbit = *laserCloudWorldRGB;
 
         if(!img_en){
-            *pcl_wait_save += *pcl_wait_pub;
+            *pcd_wait_save_rgbit += *laserCloudWorldRGB;
         }
 
         publish_frame_world(pubLaserCloudFullRes);
-        // publish_visual_world_map(pubVisualCloud);
+        //publish_visual_world_map(pubVisualCloud);
         publish_effect_world(pubLaserCloudEffect);
         // publish_map(pubLaserCloudMap);
         publish_path(pubPath);
@@ -1897,34 +1843,21 @@ int main(int argc, char** argv)
         // dump_lio_state_to_log(fp);
     }
     //--------------------------save map---------------
-    // string surf_filename(map_file_path + "/surf.pcd");
-    // string corner_filename(map_file_path + "/corner.pcd");
-    // string all_points_filename(map_file_path + "/all_points.pcd");
-
-    // PointCloudXYZI surf_points, corner_points;
-    // surf_points = *featsFromMap;
-    // fout_out.close();
-    // fout_pre.close();
-    // if (surf_points.size() > 0 && corner_points.size() > 0) 
-    // {
-    // pcl::PCDWriter pcd_writer;
-    // cout << "saving...";
-    // pcd_writer.writeBinary(surf_filename, surf_points);
-    // pcd_writer.writeBinary(corner_filename, corner_points);
-    // }
-
-    if (pcl_wait_pub->size() > 0)
+    if (pcd_wait_save_rgbit->size() > 0)
     {
         string save_file = root_dir + "/scans.pcd";
         pcl::PCDWriter pcd_writer;
 
-        if(img_en){
-            //pcd_writer.writeBinary(save_file, *pcl_wait_save_rgb);
-            pcl::io::savePCDFileASCII(save_file, *pcd_wait_save_rgbit);
-            //pcd_writer.writeBinary(save_file, *pcd_wait_save_rgbit);
-        }else {
-            pcd_writer.writeBinary(save_file, *pcl_wait_save);
-        }
+        pcl::io::savePCDFileASCII(save_file, *pcd_wait_save_rgbit);
+        //pcd_writer.writeBinary(save_file, *pcd_wait_save_rgbit);
+        // if(img_en){
+        //     //pcd_writer.writeBinary(save_file, *pcl_wait_save_rgb);
+        //     //pcd_writer.writeASCII(save_file, *pcl_wait_save_rgb);
+        //     pcl::io::savePCDFileASCII(save_file, *pcd_wait_save_rgbit);
+        //     //pcd_writer.writeBinary(save_file, *pcd_wait_save_rgbit);
+        // }else {
+        //     pcd_writer.writeBinary(save_file, *pcl_wait_save);
+        // }
 
         cout << "pcd file save done" <<endl;
     }
