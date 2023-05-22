@@ -1335,7 +1335,7 @@ int main(int argc, char** argv)
 
         if (feats_undistort->empty() || (feats_undistort == nullptr))
         {
-            cout<<" No point!!!"<<endl;
+            //cout<<" No point!!!"<<endl;
             if (!fast_lio_is_ready)
             {
                 first_lidar_time = LidarMeasures.lidar_beg_time;
