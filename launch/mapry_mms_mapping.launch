@@ -18,6 +18,9 @@
 	<!-- カメラ start -->
 	<rosparam command="load" file="$(find image_publisher)/config/camera_params.yaml" />
 	<node pkg="image_publisher" type="image_publisher" name="compress_image_publisher" output="screen"/>
+	<!-- <node pkg="image_publisher_python" type="image_publisher.py" name="compress_image_publisher" output="screen">
+		<param name="topic_name" value="/left_camera/image/compressed"/>
+	</node> -->
 	<!-- カメラ end -->
 
 	<!-- livox ros driver start-->
@@ -51,10 +54,9 @@
 	<!-- livox ros driver end-->
 
 	<group if="$(arg rviz)">
-		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_livo)/rviz_cfg/loam_livox_intensity.rviz" />
+		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_livo)/rviz_cfg/loam_livox_rgb.rviz" />
 	</group>
 	<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/left_camera/image raw out:=/left_camera/image" output="screen" respawn="true"/>
-
 launch-prefix="gdb -ex run --args" launch-prefix="valgrind --leak-check=full --show-leak-kinds=all"
 
 </launch> 	

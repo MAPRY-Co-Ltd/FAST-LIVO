@@ -502,7 +502,9 @@ void livox_pcl_cbk(const livox_ros_driver::CustomMsg::ConstPtr &msg)
         ROS_ERROR("lidar loop back, clear buffer");
         lidar_buffer.clear();
     }
+    //cout<<"msg->header.stamp.toSec(): "<<msg->header.stamp.toSec()<<" last_timestamp_lidar: "<<last_timestamp_lidar<<endl;
     //printf("[ INFO ]: get point cloud at time: %.6f.\n", msg->header.stamp.toSec());
+    //printf("[ INFO ]: get point cloud last at time: %.6f.\n", last_timestamp_lidar);
     PointCloudXYZI::Ptr ptr(new PointCloudXYZI());
     p_pre->process(msg, ptr);
     lidar_buffer.push_back(ptr);
@@ -545,7 +547,7 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr& img_msg) {
 
 void img_cbk(const sensor_msgs::ImageConstPtr& msg)
 {
-    // cout<<"In Img_cbk"<<endl;
+    //cout<<"In Img_cbk"<<endl;
     // if (first_img_time<0 && time_buffer.size()>0) {
     //     first_img_time = msg->header.stamp.toSec() - time_buffer.front();
     // }
@@ -553,7 +555,7 @@ void img_cbk(const sensor_msgs::ImageConstPtr& msg)
     {
         return;
     }
-    //printf("[ INFO ]: get img at time: %.6f.\n", msg->header.stamp.toSec());
+    // printf("[ INFO ]: get img at time: %.6f.\n", msg->header.stamp.toSec());
     if (msg->header.stamp.toSec() < last_timestamp_img)
     {
         ROS_ERROR("img loop back, clear buffer");
@@ -575,10 +577,11 @@ void img_cbk(const sensor_msgs::ImageConstPtr& msg)
 
 bool sync_packages(LidarMeasureGroup &meas)
 {
+
     if ((lidar_buffer.empty() && img_buffer.empty())) { // has lidar topic or img topic?
         return false;
     }
-    // ROS_ERROR("In sync");
+    //ROS_ERROR("In sync");
     if (meas.is_lidar_end) // If meas.is_lidar_end==true, means it just after scan end, clear all buffer in meas.
     {
         meas.measures.clear();
@@ -590,7 +593,11 @@ bool sync_packages(LidarMeasureGroup &meas)
             // ROS_ERROR("out sync");
             return false;
         }
+
+        //cout<<" lidar_buffer.front() : "<< lidar_buffer.front()<<endl;
         meas.lidar = lidar_buffer.front(); // push the firsrt lidar topic
+
+        //cout<<"meas.lidar->points.size() : "<<meas.lidar->points.size()<<endl;
         if(meas.lidar->points.size() <= 1)
         {
             mtx_buffer.lock();
@@ -610,6 +617,7 @@ bool sync_packages(LidarMeasureGroup &meas)
         lidar_pushed = true; // flag
     }
 
+    //cout<<"img_buffer.empty(): "<<img_buffer.empty()<<endl;
     if (img_buffer.empty()) { // no img topic, means only has lidar topic
         if (last_timestamp_imu < lidar_end_time+0.02) { // imu message needs to be larger than lidar_end_time, keep complete propagate.
             // ROS_ERROR("out sync");
@@ -636,9 +644,9 @@ bool sync_packages(LidarMeasureGroup &meas)
         return true;
     }
     struct MeasureGroup m;
-    // cout<<"lidar_buffer.size(): "<<lidar_buffer.size()<<" img_buffer.size(): "<<img_buffer.size()<<endl;
-    // cout<<"time_buffer.size(): "<<time_buffer.size()<<" img_time_buffer.size(): "<<img_time_buffer.size()<<endl;
-    // cout<<"img_time_buffer.front(): "<<img_time_buffer.front()<<"lidar_end_time: "<<lidar_end_time<<"last_timestamp_imu: "<<last_timestamp_imu<<endl;
+    //cout<<"lidar_buffer.size(): "<<lidar_buffer.size()<<" img_buffer.size(): "<<img_buffer.size()<<endl;
+    //cout<<"time_buffer.size(): "<<time_buffer.size()<<" img_time_buffer.size(): "<<img_time_buffer.size()<<endl;
+    //cout<<"img_time_buffer.front(): "<<img_time_buffer.front()<<"lidar_end_time: "<<lidar_end_time<<"last_timestamp_imu: "<<last_timestamp_imu<<endl;
     if ((img_time_buffer.front()>lidar_end_time) )
     { // has img topic, but img topic timestamp larger than lidar end time, process lidar topic.
         if (last_timestamp_imu < lidar_end_time+0.02) 
@@ -1163,6 +1171,8 @@ int main(int argc, char** argv)
         nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
     ros::Subscriber sub_img = nh.subscribe(img_topic, 200000, img_cbk);
+    //cout<<"img_topic:"<<img_topic<<endl;
+
     image_transport::Publisher img_pub = it.advertise("/rgb_img", 1);
     ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
             ("/cloud_registered", 100);
@@ -1283,8 +1293,10 @@ int main(int argc, char** argv)
     bool status = ros::ok();
     while (status)
     {
+
         if (flg_exit) break;
         ros::spinOnce();
+
         if(!sync_packages(LidarMeasures))
         {
             status = ros::ok();
@@ -1323,7 +1335,7 @@ int main(int argc, char** argv)
 
         if (feats_undistort->empty() || (feats_undistort == nullptr))
         {
-            // cout<<" No point!!!"<<endl;
+            cout<<" No point!!!"<<endl;
             if (!fast_lio_is_ready)
             {
                 first_lidar_time = LidarMeasures.lidar_beg_time;
@@ -1345,7 +1357,7 @@ int main(int argc, char** argv)
         fast_lio_is_ready = true;
         flg_EKF_inited = (LidarMeasures.lidar_beg_time - first_lidar_time) < INIT_TIME ? \
                         false : true;
-
+                        
         if (! LidarMeasures.is_lidar_end) 
         {
             //cout<<"[ VIO ]: Raw feature num: "<<pcl_wait_pub->points.size() << "." << endl;
