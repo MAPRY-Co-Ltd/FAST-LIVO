@@ -182,7 +182,13 @@ struct CustomPointT {
     PCL_ADD_INTENSITY;
     uint32_t timestamp_sec;
     uint32_t timestamp_nsec;
-
+    union {
+        struct {
+            float raw_x;
+            float raw_y;
+            float raw_z;
+        };
+    };
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     inline CustomPointT() {
@@ -191,6 +197,7 @@ struct CustomPointT {
         intensity = 0.0f;
         r = g = b = 255;
         timestamp_sec = timestamp_nsec = 0;
+        raw_x = raw_y = raw_z = 0;
     }
 
     inline CustomPointT(const CustomPointT& p) {
@@ -203,6 +210,9 @@ struct CustomPointT {
         b = p.b;
         timestamp_sec = p.timestamp_sec;
         timestamp_nsec = p.timestamp_nsec;
+        raw_x = p.raw_x;
+        raw_y = p.raw_y;
+        raw_z = p.raw_z;
     }
 } EIGEN_ALIGN16;
 
@@ -215,6 +225,9 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
     (float, intensity, intensity)
     (uint32_t, timestamp_sec, timestamp_sec)
     (uint32_t, timestamp_nsec, timestamp_nsec)
+    (float, raw_x, raw_x)
+    (float, raw_y, raw_y)
+    (float, raw_z, raw_z)
 )
 
 pcl::VoxelGrid<PointType> downSizeFilterSurf;
@@ -363,7 +376,10 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  Cust
     c_po->intensity = pi->intensity;
     c_po->timestamp_sec = current_time.sec;
     c_po->timestamp_nsec = current_time.nsec;
-
+    c_po->raw_x = pi->x;
+    c_po->raw_y = pi->y;
+    c_po->raw_z = pi->z;
+    
     float intensity = pi->intensity;
     intensity = intensity - floor(intensity);
 
@@ -547,7 +563,7 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr& img_msg) {
 
 void img_cbk(const sensor_msgs::ImageConstPtr& msg)
 {
-    //cout<<"In Img_cbk"<<endl;
+    // cout<<"In Img_cbk"<<endl;
     // if (first_img_time<0 && time_buffer.size()>0) {
     //     first_img_time = msg->header.stamp.toSec() - time_buffer.front();
     // }
@@ -581,7 +597,7 @@ bool sync_packages(LidarMeasureGroup &meas)
     if ((lidar_buffer.empty() && img_buffer.empty())) { // has lidar topic or img topic?
         return false;
     }
-    //ROS_ERROR("In sync");
+    // ROS_ERROR("In sync");
     if (meas.is_lidar_end) // If meas.is_lidar_end==true, means it just after scan end, clear all buffer in meas.
     {
         meas.measures.clear();
@@ -644,9 +660,9 @@ bool sync_packages(LidarMeasureGroup &meas)
         return true;
     }
     struct MeasureGroup m;
-    //cout<<"lidar_buffer.size(): "<<lidar_buffer.size()<<" img_buffer.size(): "<<img_buffer.size()<<endl;
-    //cout<<"time_buffer.size(): "<<time_buffer.size()<<" img_time_buffer.size(): "<<img_time_buffer.size()<<endl;
-    //cout<<"img_time_buffer.front(): "<<img_time_buffer.front()<<"lidar_end_time: "<<lidar_end_time<<"last_timestamp_imu: "<<last_timestamp_imu<<endl;
+    // cout<<"lidar_buffer.size(): "<<lidar_buffer.size()<<" img_buffer.size(): "<<img_buffer.size()<<endl;
+    // cout<<"time_buffer.size(): "<<time_buffer.size()<<" img_time_buffer.size(): "<<img_time_buffer.size()<<endl;
+    //cout<<"img_time_buffer.front(): "<<img_time_buffer.front()<<" lidar_end_time: "<<lidar_end_time<<" last_timestamp_imu: "<<last_timestamp_imu<<endl;
     if ((img_time_buffer.front()>lidar_end_time) )
     { // has img topic, but img topic timestamp larger than lidar end time, process lidar topic.
         if (last_timestamp_imu < lidar_end_time+0.02) 
@@ -780,7 +796,7 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
         sensor_msgs::PointCloud2 laserCloudmsg;
         if (img_en)
         {
-            // cout<<"RGB pointcloud size: "<<laserCloudWorldRGB->size()<<endl;
+            //cout<<"RGB pointcloud size: "<<laserCloudWorldRGB->size()<<endl;
             pcl::toROSMsg(*laserCloudWorldRGB, laserCloudmsg);
         }
         else
@@ -1171,7 +1187,7 @@ int main(int argc, char** argv)
         nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
     ros::Subscriber sub_img = nh.subscribe(img_topic, 200000, img_cbk);
-    //cout<<"img_topic:"<<img_topic<<endl;
+    cout<<"img_topic:"<<img_topic<<endl;
 
     image_transport::Publisher img_pub = it.advertise("/rgb_img", 1);
     ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
@@ -1374,8 +1390,8 @@ int main(int argc, char** argv)
                 // lidar_selector->detect(LidarMeasures.measures.back().img, feats_undistort);
                 // mtx_buffer_pointcloud.lock();
                 
-                // int size = feats_undistort->points.size();
-                // cout<<"size1111111111111111: "<<size<<endl;
+                int size = feats_undistort->points.size();
+                //cout<<"size1111111111111111: " << size <<endl;
                 // PointCloudXYZI::Ptr laserCloudWorld(new PointCloudXYZI(size, 1));
                 // for (int i = 0; i < size; i++)
                 // {

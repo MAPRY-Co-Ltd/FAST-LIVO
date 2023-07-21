@@ -16,8 +16,11 @@
 	<!-- fast livo end -->
 
 	<!-- カメラ start -->
-	<rosparam command="load" file="$(find image_publisher)/config/camera_params.yaml" />
-	<node pkg="image_publisher" type="image_publisher" name="compress_image_publisher" output="screen"/>
+	<node pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture" output="screen">
+		<rosparam command="load" file="$(find Image_Capture)/config/camera_params.yaml"/>		
+	</node>
+	<!-- <rosparam command="load" file="$(find image_publisher)/config/camera_params.yaml" />
+	<node pkg="image_publisher" type="image_publisher" name="compress_image_publisher" output="screen"/> -->
 	<!-- <node pkg="image_publisher_python" type="image_publisher.py" name="compress_image_publisher" output="screen">
 		<param name="topic_name" value="/left_camera/image/compressed"/>
 	</node> -->
