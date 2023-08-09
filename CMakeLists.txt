@@ -69,6 +69,7 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS thread)
 set(Sophus_LIBRARIES libSophus.so)
 
 message(Eigen: ${EIGEN3_INCLUDE_DIR})
+message(STATUS "***************** " ${OpenCV_LIBS} " ***************************")
 
 include_directories(
 	${catkin_INCLUDE_DIRS} 

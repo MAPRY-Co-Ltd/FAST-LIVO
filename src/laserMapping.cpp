@@ -104,7 +104,7 @@ V3F Zero3f(0, 0, 0);
 // Vector3d Lidar_offset_to_IMU(0.04165, 0.02326, -0.0284); // Avia
 Vector3d Lidar_offset_to_IMU;
 int iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0,\
-    effct_feat_num = 0, time_log_counter = 0, publish_count = 0;
+    effct_feat_num = 0, time_log_counter = 0, publish_count = 0, pcd_save_interval = 0;
 int MIN_IMG_COUNT = 0;
 
 double res_mean_last = 0.05;
@@ -1142,6 +1142,7 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<double>("cam_fy",cam_fy,453.254913);
     nh.param<double>("cam_cx",cam_cx,318.908851);
     nh.param<double>("cam_cy",cam_cy,234.238189);
+    nh.param<int>("pcd_save_interval",pcd_save_interval,1000);
     nh.param<double>("laser_point_cov",LASER_POINT_COV,0.001);
     nh.param<double>("img_point_cov",IMG_POINT_COV,10);
     nh.param<string>("map_file_path",map_file_path,"");
@@ -1357,7 +1358,7 @@ int main(int argc, char** argv)
                 first_lidar_time = LidarMeasures.lidar_beg_time;
                 p_imu->first_lidar_time = first_lidar_time;
                 LidarMeasures.measures.clear();
-                cout<<"FAST-LIO not ready"<<endl;
+                cout<<"mapping not ready"<<endl;
                 continue;
             }
         }
@@ -1367,7 +1368,11 @@ int main(int argc, char** argv)
         }
         
         if(!fast_lio_is_ready){
-            cout<<"FAST-LIO Ready Slam Start"<<endl;
+            // スキャンスタートできた
+            std::ofstream outputFile(root_dir + "/result/scan_start_complete");  // ファイルを作る
+            outputFile.close();
+
+            cout<<"*** mapping start ***"<<endl;
         }
 
         fast_lio_is_ready = true;
@@ -1873,10 +1878,10 @@ int main(int argc, char** argv)
     //--------------------------save map---------------
     if (pcd_wait_save_rgbit->size() > 0)
     {
-        string save_file = root_dir + "/scans.pcd";
+        string save_file = root_dir + "/result/scans.pcd";
         pcl::PCDWriter pcd_writer;
 
-        pcl::io::savePCDFileASCII(save_file, *pcd_wait_save_rgbit);
+        pcl::io::savePCDFileBinary(save_file, *pcd_wait_save_rgbit);
         //pcd_writer.writeBinary(save_file, *pcd_wait_save_rgbit);
         // if(img_en){
         //     //pcd_writer.writeBinary(save_file, *pcl_wait_save_rgb);
@@ -1886,41 +1891,41 @@ int main(int argc, char** argv)
         // }else {
         //     pcd_writer.writeBinary(save_file, *pcl_wait_save);
         // }
-
-        cout << "pcd file save done" <<endl;
     }
 
-    #ifndef DEPLOY
-    vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;    
-    FILE *fp2;
-    string log_dir = root_dir + "/Log/fast_livo_time_log.csv";
-    fp2 = fopen(log_dir.c_str(),"w");
-    fprintf(fp2,"time_stamp, average time, incremental time, search time,fov check time, total time, alpha_bal, alpha_del\n");
-    for (int i = 0;i<time_log_counter; i++){
-        fprintf(fp2,"%0.8f,%0.8f,%0.8f,%0.8f,%0.8f,%0.8f,%f,%f\n",T1[i],s_plot[i],s_plot2[i],s_plot3[i],s_plot4[i],s_plot5[i],s_plot6[i],s_plot7[i]);
-        t.push_back(T1[i]);
-        s_vec.push_back(s_plot[i]);
-        s_vec2.push_back(s_plot2[i]);
-        s_vec3.push_back(s_plot3[i]);
-        s_vec4.push_back(s_plot4[i]);
-        s_vec5.push_back(s_plot5[i]);
-        s_vec6.push_back(s_plot6[i]);        
-        s_vec7.push_back(s_plot7[i]);                             
-    }
-    fclose(fp2);
-    if (!t.empty())
-    {
-        // plt::named_plot("incremental time",t,s_vec2);
-        // plt::named_plot("search_time",t,s_vec3);
-        // plt::named_plot("total time",t,s_vec5);
-        // plt::named_plot("average time",t,s_vec);
-        // plt::legend();
-        // plt::show();
-        // plt::pause(0.5);
-        // plt::close();
-    }
-    //cout << "no points saved" << endl;
-    #endif
+    cout << "*** mapping end ***" <<endl;
+
+    // #ifndef DEPLOY
+    // vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;    
+    // FILE *fp2;
+    // string log_dir = root_dir + "/Log/fast_livo_time_log.csv";
+    // fp2 = fopen(log_dir.c_str(),"w");
+    // fprintf(fp2,"time_stamp, average time, incremental time, search time,fov check time, total time, alpha_bal, alpha_del\n");
+    // for (int i = 0;i<time_log_counter; i++){
+    //     fprintf(fp2,"%0.8f,%0.8f,%0.8f,%0.8f,%0.8f,%0.8f,%f,%f\n",T1[i],s_plot[i],s_plot2[i],s_plot3[i],s_plot4[i],s_plot5[i],s_plot6[i],s_plot7[i]);
+    //     t.push_back(T1[i]);
+    //     s_vec.push_back(s_plot[i]);
+    //     s_vec2.push_back(s_plot2[i]);
+    //     s_vec3.push_back(s_plot3[i]);
+    //     s_vec4.push_back(s_plot4[i]);
+    //     s_vec5.push_back(s_plot5[i]);
+    //     s_vec6.push_back(s_plot6[i]);        
+    //     s_vec7.push_back(s_plot7[i]);                             
+    // }
+    // fclose(fp2);
+    // if (!t.empty())
+    // {
+    //     // plt::named_plot("incremental time",t,s_vec2);
+    //     // plt::named_plot("search_time",t,s_vec3);
+    //     // plt::named_plot("total time",t,s_vec5);
+    //     // plt::named_plot("average time",t,s_vec);
+    //     // plt::legend();
+    //     // plt::show();
+    //     // plt::pause(0.5);
+    //     // plt::close();
+    // }
+    // //cout << "no points saved" << endl;
+    // #endif
 
     return 0;
 }
