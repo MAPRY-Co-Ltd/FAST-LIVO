@@ -104,7 +104,7 @@ V3F Zero3f(0, 0, 0);
 // Vector3d Lidar_offset_to_IMU(0.04165, 0.02326, -0.0284); // Avia
 Vector3d Lidar_offset_to_IMU;
 int iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0,\
-    effct_feat_num = 0, time_log_counter = 0, publish_count = 0, pcd_save_interval = 0;
+    effct_feat_num = 0, time_log_counter = 0, publish_count = 0, pcd_save_interval = 0, pcd_index = 0;
 int MIN_IMG_COUNT = 0;
 
 double res_mean_last = 0.05;
@@ -229,6 +229,20 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
     (float, raw_y, raw_y)
     (float, raw_z, raw_z)
 )
+
+bool local_pos_save = false;
+struct LocalPosition {
+    double x;
+    double y;
+    double z;
+    double pos_x;
+    double pos_y;
+    double pos_z;
+    uint32_t timestamp_sec;
+    uint32_t timestamp_nsec;
+};
+
+std::vector<LocalPosition> localPositions;
 
 pcl::VoxelGrid<PointType> downSizeFilterSurf;
 pcl::VoxelGrid<PointType> downSizeFilterMap;
@@ -384,6 +398,13 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  Cust
     intensity = intensity - floor(intensity);
 
     int reflection_map = intensity*10000;
+
+    if(local_pos_save){
+        local_pos_save = false;
+        LocalPosition item = {p_global(0), p_global(1), p_global(2), state.pos_end(0), state.pos_end(1), state.pos_end(2), current_time.sec, current_time.nsec};
+        localPositions.push_back(item);
+    }
+
 }
 
 #ifndef USE_ikdforest
@@ -1816,6 +1837,16 @@ int main(int argc, char** argv)
 
         pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB(new pcl::PointCloud<CustomPointT>(size, 1));
 
+
+        // ローカル位置の保存
+        static int local_pos_save_counter = 0;
+        local_pos_save_counter ++;
+        if(local_pos_save_counter > 10){
+            local_pos_save = true;
+            local_pos_save_counter = 0;
+        }
+
+
         for (int i = 0; i < size; i++)
         {
             RGBpointBodyToWorld(&laserCloudFullRes->points[i], \
@@ -1829,6 +1860,20 @@ int main(int argc, char** argv)
         if(!img_en){
             *pcd_wait_save_rgbit += *laserCloudWorldRGB;
         }
+
+
+        // 分割保存設定
+        static int scan_wait_num = 0;
+        scan_wait_num ++;
+        if (pcd_wait_save_rgbit->size() > 0 && pcd_save_interval > 0  && scan_wait_num >= pcd_save_interval)
+        {
+            pcd_index ++;
+            string all_points_dir(string(string(root_dir) + "result/scans_") + to_string(pcd_index) + string(".pcd"));
+            pcl::io::savePCDFileBinary(all_points_dir, *pcd_wait_save_rgbit);
+            pcd_wait_save_rgbit->clear();
+            scan_wait_num = 0;
+        }
+
 
         publish_frame_world(pubLaserCloudFullRes);
         //publish_visual_world_map(pubVisualCloud);
@@ -1878,21 +1923,27 @@ int main(int argc, char** argv)
     //--------------------------save map---------------
     if (pcd_wait_save_rgbit->size() > 0)
     {
-        string save_file = root_dir + "/result/scans.pcd";
-        pcl::PCDWriter pcd_writer;
+        // string save_file = root_dir + "/result/scans.pcd";
+        // pcl::PCDWriter pcd_writer;
+        // pcl::io::savePCDFileBinary(save_file, *pcd_wait_save_rgbit);
 
-        pcl::io::savePCDFileBinary(save_file, *pcd_wait_save_rgbit);
-        //pcd_writer.writeBinary(save_file, *pcd_wait_save_rgbit);
-        // if(img_en){
-        //     //pcd_writer.writeBinary(save_file, *pcl_wait_save_rgb);
-        //     //pcd_writer.writeASCII(save_file, *pcl_wait_save_rgb);
-        //     pcl::io::savePCDFileASCII(save_file, *pcd_wait_save_rgbit);
-        //     //pcd_writer.writeBinary(save_file, *pcd_wait_save_rgbit);
-        // }else {
-        //     pcd_writer.writeBinary(save_file, *pcl_wait_save);
-        // }
+        pcd_index ++;
+        string all_points_dir(string(string(root_dir) + "result/scans_") + to_string(pcd_index) + string(".pcd"));
+        pcl::io::savePCDFileBinary(all_points_dir, *pcd_wait_save_rgbit);
+        pcd_wait_save_rgbit->clear();
     }
 
+    // ローカル位置の保存
+    string local_pos_dir(string(string(root_dir) + "result/") + string("local_positions.csv"));
+    std::ofstream csvFile(local_pos_dir);
+    csvFile << "timestamp_sec,timestamp_nsec,x,y,z,pos_x,pos_y,pos_z,\n";
+    for (const auto& data : localPositions) {
+        csvFile << data.timestamp_sec << "," << data.timestamp_nsec << "," << data.x << "," << data.y << "," << data.z << ","
+                << data.pos_x << "," << data.pos_y << "," << data.pos_z << "\n";
+    }
+    csvFile.close();
+
+    
     cout << "*** mapping end ***" <<endl;
 
     // #ifndef DEPLOY

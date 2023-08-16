@@ -841,17 +841,33 @@ void ImuProcess::Process2(LidarMeasureGroup &lidar_meas, StatesGroup &stat, Poin
     {
       cov_acc *= pow(G_m_s2 / mean_acc.norm(), 2);
       imu_need_init_ = false;
-      ROS_INFO("IMU Initials: Gravity: %.4f %.4f %.4f %.4f; state.bias_g: %.4f %.4f %.4f; acc covarience: %.8f %.8f %.8f; gry covarience: %.8f %.8f %.8f",\
-               stat.gravity[0], stat.gravity[1], stat.gravity[2], mean_acc.norm(), cov_acc_scale[0], cov_acc_scale[1], cov_acc_scale[2], cov_acc[0], cov_acc[1], cov_acc[2], cov_gyr[0], cov_gyr[1], cov_gyr[2]);
+      // ROS_INFO("IMU Initials: Gravity: %.4f %.4f %.4f %.4f; state.bias_g: %.4f %.4f %.4f; acc covarience: %.8f %.8f %.8f; gry covarience: %.8f %.8f %.8f",\
+      //          stat.gravity[0], stat.gravity[1], stat.gravity[2], mean_acc.norm(), cov_acc_scale[0], cov_acc_scale[1], cov_acc_scale[2], cov_acc[0], cov_acc[1], cov_acc[2], cov_gyr[0], cov_gyr[1], cov_gyr[2]);
       cov_acc = cov_acc.cwiseProduct(cov_acc_scale);
       cov_gyr = cov_gyr.cwiseProduct(cov_gyr_scale);
 
-      // cov_acc = Eye3d * cov_acc_scale;
-      // cov_gyr = Eye3d * cov_gyr_scale;
-      // cout<<"mean acc: "<<mean_acc<<" acc measures in word frame:"<<state.rot_end.transpose()*mean_acc<<endl;
+      cov_acc = Eye3d * cov_acc_scale;
+      cov_gyr = Eye3d * cov_gyr_scale;
+      //cout<<"mean acc: "<<mean_acc<<" acc measures in word frame:"<<state.rot_end.transpose()*mean_acc<<endl;
       ROS_INFO("IMU Initials: Gravity: %.4f %.4f %.4f %.4f; state.bias_g: %.4f %.4f %.4f; acc covarience: %.8f %.8f %.8f; gry covarience: %.8f %.8f %.8f",\
                stat.gravity[0], stat.gravity[1], stat.gravity[2], mean_acc.norm(), cov_bias_gyr[0], cov_bias_gyr[1], cov_bias_gyr[2], cov_acc[0], cov_acc[1], cov_acc[2], cov_gyr[0], cov_gyr[1], cov_gyr[2]);
       fout_imu.open(DEBUG_FILE_DIR("imu.txt"),ios::out);
+
+      fout_pose.open(DEBUG_FILE_DIR("pose.txt"));
+      // 初期姿勢の計算
+      double angle_x = std::asin(stat.gravity[0] / 9.8);
+      double angle_y = std::asin(stat.gravity[1] / 9.8);
+
+      // nan回避対策
+      double grav_z = stat.gravity[2];
+      if (grav_z < -9.8) {
+        grav_z = -9.8;
+      } else if (grav_z > 9.8) {
+        grav_z = 9.8;
+      }
+      double angle_z = std::asin(grav_z / 9.8);
+      fout_pose << std::to_string(angle_x) + "," + std::to_string(angle_y) + "," + std::to_string(angle_z) << std::endl;
+      fout_pose.close();
     }
 
     return;
