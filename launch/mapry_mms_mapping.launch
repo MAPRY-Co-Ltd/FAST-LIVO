@@ -3,6 +3,8 @@
 
 	<arg name="rviz" default="true" />
 	<arg name="product" default="true" />
+	<arg name="name_key" default="sample" />
+	<arg name="lidar_position" default="front" />
 
 	<!-- <arg name="bag_name" value="/media/chunran/Chunran/rosbag/mtr/xu2_new.bag"/> -->
 
@@ -12,6 +14,8 @@
 	<rosparam command="load" file="$(find fast_livo)/config/avia_resize.yaml" />
 
 	<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen" >
+		<param name="name_key" type="string" value="$(arg name_key)"/>
+		<param name="lidar_position" type="string" value="$(arg lidar_position)"/>
 		<rosparam file="$(find fast_livo)/config/camera_pinhole_resize.yaml" />
 	</node>
 	<!-- fast livo end -->

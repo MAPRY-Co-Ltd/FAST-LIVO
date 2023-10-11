@@ -96,7 +96,7 @@ condition_variable sig_buffer;
 // mutex mtx_buffer_pointcloud;
 
 string root_dir = ROOT_DIR;
-string map_file_path, lid_topic, imu_topic, img_topic, config_file;;
+string map_file_path, lid_topic, imu_topic, img_topic, config_file, DIR_KEY, SAVE_MAP_NAME;
 M3D Eye3d(M3D::Identity());
 M3F Eye3f(M3F::Identity());
 V3D Zero3d(0, 0, 0);
@@ -1003,6 +1003,18 @@ void publish_path(const ros::Publisher pubPath)
     pubPath.publish(path);
 }
 
+bool createDirectory(const std::string& path) {
+    return mkdir(path.c_str(), 0777) == 0;
+}
+
+bool directoryExists(const std::string& path) {
+    struct stat info;
+    if (stat(path.c_str(), &info) != 0) {
+        return false;
+    }
+    return S_ISDIR(info.st_mode);
+}
+
 #ifdef USE_IKFOM
 void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_data)
 {
@@ -1159,6 +1171,8 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<string>("common/lid_topic",lid_topic,"/livox/lidar");
     nh.param<string>("common/imu_topic", imu_topic,"/livox/imu");
     nh.param<string>("camera/img_topic", img_topic,"/usb_cam/image_raw");
+    nh.param<string>("name_key", SAVE_MAP_NAME, "sample");
+    nh.param<string>("lidar_position", DIR_KEY, "front");
     nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
     nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
     nh.param<double>("filter_size_map",filter_size_map_min,0.5);
@@ -1191,6 +1205,21 @@ int main(int argc, char** argv)
     pcl_wait_pub->clear();
     pcl_wait_rgbit->clear();
     pcd_wait_save_rgbit->clear();
+
+
+    // フォルダが存在しなかったら作る
+    string points_dir1(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/");
+    string points_dir2(points_dir1 + string(DIR_KEY) + "/");
+    string points_dir3(points_dir2 +  + "pointcloud/");
+    if (!directoryExists(points_dir1)) {
+        createDirectory(points_dir1);
+    }
+    if(!directoryExists(points_dir2)){
+        createDirectory(points_dir2);
+    }
+    if(!directoryExists(points_dir3)){
+        createDirectory(points_dir3);
+    }
 
     // pcl_visual_wait_pub->clear();
     ros::Subscriber sub_pcl = p_pre->lidar_type == AVIA ? \
@@ -1859,8 +1888,9 @@ int main(int argc, char** argv)
         scan_wait_num ++;
         if (pcd_wait_save_rgbit->size() > 0 && pcd_save_interval > 0  && scan_wait_num >= pcd_save_interval)
         {
+            string points_dir(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/" + string(DIR_KEY) + "/pointcloud/");
             pcd_index ++;
-            string all_points_dir(string(string(root_dir) + "result/scans_") + to_string(pcd_index) + string(".pcd"));
+            string all_points_dir( points_dir + string(SAVE_MAP_NAME) + "_" + to_string(pcd_index) + string(".pcd"));
             pcl::io::savePCDFileBinary(all_points_dir, *pcd_wait_save_rgbit);
             pcd_wait_save_rgbit->clear();
             scan_wait_num = 0;
@@ -1915,12 +1945,11 @@ int main(int argc, char** argv)
     //--------------------------save map---------------
     if (pcd_wait_save_rgbit->size() > 0)
     {
-        // string save_file = root_dir + "/result/scans.pcd";
-        // pcl::PCDWriter pcd_writer;
-        // pcl::io::savePCDFileBinary(save_file, *pcd_wait_save_rgbit);
-
+        // フォルダ構成
+        // ./result/test/front/point_cloud/test_1.pcd
+        string points_dir(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/" + string(DIR_KEY) + "/pointcloud/");
         pcd_index ++;
-        string all_points_dir(string(string(root_dir) + "result/scans_") + to_string(pcd_index) + string(".pcd"));
+        string all_points_dir( points_dir + string(SAVE_MAP_NAME) + "_" + to_string(pcd_index) + string(".pcd"));
         pcl::io::savePCDFileBinary(all_points_dir, *pcd_wait_save_rgbit);
         pcd_wait_save_rgbit->clear();
     }
