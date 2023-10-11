@@ -135,6 +135,7 @@ int debug = 0;
 bool fast_lio_is_ready = false;
 int grid_size, patch_size;
 double outlier_threshold, ncc_thre;
+ofstream local_positions;
 
 vector<BoxPointType> cub_needrm;
 vector<BoxPointType> cub_needad;
@@ -231,18 +232,6 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(
 )
 
 bool local_pos_save = false;
-struct LocalPosition {
-    double x;
-    double y;
-    double z;
-    double pos_x;
-    double pos_y;
-    double pos_z;
-    uint32_t timestamp_sec;
-    uint32_t timestamp_nsec;
-};
-
-std::vector<LocalPosition> localPositions;
 
 pcl::VoxelGrid<PointType> downSizeFilterSurf;
 pcl::VoxelGrid<PointType> downSizeFilterMap;
@@ -401,10 +390,10 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  Cust
 
     if(local_pos_save){
         local_pos_save = false;
-        LocalPosition item = {p_global(0), p_global(1), p_global(2), state.pos_end(0), state.pos_end(1), state.pos_end(2), current_time.sec, current_time.nsec};
-        localPositions.push_back(item);
+        local_positions  << current_time.sec << "," << current_time.nsec << "," << state.pos_end(0) << "," << state.pos_end(1) << "," << state.pos_end(2) << ","
+                << geoQuat.x << "," << geoQuat.y << "," << geoQuat.z << "," << geoQuat.w << "\n";
+        local_positions.flush();
     }
-
 }
 
 #ifndef USE_ikdforest
@@ -1312,14 +1301,19 @@ int main(int argc, char** argv)
     string pos_log_dir = root_dir + "/Log/pos_log.txt";
     fp = fopen(pos_log_dir.c_str(),"w");
 
-    ofstream fout_pre, fout_out, fout_dbg;
-    fout_pre.open(DEBUG_FILE_DIR("mat_pre.txt"),ios::out);
-    fout_out.open(DEBUG_FILE_DIR("mat_out.txt"),ios::out);
-    fout_dbg.open(DEBUG_FILE_DIR("dbg.txt"),ios::out);
+    //ofstream fout_pre, fout_out, fout_dbg;
+    // fout_pre.open(DEBUG_FILE_DIR("mat_pre.txt"),ios::out);
+    // fout_out.open(DEBUG_FILE_DIR("mat_out.txt"),ios::out);
+    // fout_dbg.open(DEBUG_FILE_DIR("dbg.txt"),ios::out);
     // if (fout_pre && fout_out)
     //     cout << "~~~~"<<ROOT_DIR<<" file opened" << endl;
     // else
     //     cout << "~~~~"<<ROOT_DIR<<" doesn't exist" << endl;
+
+    string local_pos_file(string(string(root_dir) + "result/") + string("local_positions.csv"));
+    local_positions.open(local_pos_file ,ios::out);
+    local_positions << "timestamp_sec,timestamp_nsec,pos_x,pos_y,pos_z,rot_x,rot_y,rot_z,rot_w\n";
+    local_positions.flush();
 
     #ifdef USE_ikdforest
         ikdforest.Set_balance_criterion_param(0.6);
@@ -1410,8 +1404,8 @@ int main(int argc, char** argv)
             // cout<<"cur state:"<<state.rot_end<<endl;
             if (img_en) {
                 euler_cur = RotMtoEuler(state.rot_end);
-                fout_pre << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
-                                <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<< endl;
+                // fout_pre << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
+                //                 <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<< endl;
                 
                 // lidar_selector->detect(LidarMeasures.measures.back().img, feats_undistort);
                 // mtx_buffer_pointcloud.lock();
@@ -1467,8 +1461,8 @@ int main(int argc, char** argv)
                 geoQuat = tf::createQuaternionMsgFromRollPitchYaw(euler_cur(0), euler_cur(1), euler_cur(2));
                 publish_odometry(pubOdomAftMapped);
                 euler_cur = RotMtoEuler(state.rot_end);
-                fout_out << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
-                <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<<" "<<feats_undistort->points.size()<<endl;
+                // fout_out << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
+                // <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<<" "<<feats_undistort->points.size()<<endl;
             }
             continue;
         }
@@ -1527,14 +1521,14 @@ int main(int argc, char** argv)
         if (lidar_en)
         {
             euler_cur = RotMtoEuler(state.rot_end);
-            #ifdef USE_IKFOM
-            //state_ikfom fout_state = kf.get_x();
-            fout_pre << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state_point.pos.transpose() << " " << state_point.vel.transpose() \
-            <<" "<<state_point.bg.transpose()<<" "<<state_point.ba.transpose()<<" "<<state_point.grav<< endl;
-            #else
-            fout_pre << setw(20) << LidarMeasures.last_update_time  - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
-            <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<< endl;
-            #endif
+            // #ifdef USE_IKFOM
+            // //state_ikfom fout_state = kf.get_x();
+            // fout_pre << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state_point.pos.transpose() << " " << state_point.vel.transpose() \
+            // <<" "<<state_point.bg.transpose()<<" "<<state_point.ba.transpose()<<" "<<state_point.grav<< endl;
+            // #else
+            // fout_pre << setw(20) << LidarMeasures.last_update_time  - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
+            // <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<< endl;
+            // #endif
         }
 
     #ifdef USE_ikdtree
@@ -1837,7 +1831,6 @@ int main(int argc, char** argv)
 
         pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB(new pcl::PointCloud<CustomPointT>(size, 1));
 
-
         // ローカル位置の保存
         static int local_pos_save_counter = 0;
         local_pos_save_counter ++;
@@ -1845,7 +1838,6 @@ int main(int argc, char** argv)
             local_pos_save = true;
             local_pos_save_counter = 0;
         }
-
 
         for (int i = 0; i < size; i++)
         {
@@ -1910,13 +1902,13 @@ int main(int argc, char** argv)
         if (lidar_en)
         {
             euler_cur = RotMtoEuler(state.rot_end);
-            #ifdef USE_IKFOM
-            fout_out << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state_point.pos.transpose() << " " << state_point.vel.transpose() \
-            <<" "<<state_point.bg.transpose()<<" "<<state_point.ba.transpose()<<" "<<state_point.grav<<" "<<feats_undistort->points.size()<<endl;
-            #else
-            fout_out << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
-            <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<<" "<<feats_undistort->points.size()<<endl;
-            #endif
+            // #ifdef USE_IKFOM
+            // fout_out << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state_point.pos.transpose() << " " << state_point.vel.transpose() \
+            // <<" "<<state_point.bg.transpose()<<" "<<state_point.ba.transpose()<<" "<<state_point.grav<<" "<<feats_undistort->points.size()<<endl;
+            // #else
+            // fout_out << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state.pos_end.transpose() << " " << state.vel_end.transpose() \
+            // <<" "<<state.bias_g.transpose()<<" "<<state.bias_a.transpose()<<" "<<state.gravity.transpose()<<" "<<feats_undistort->points.size()<<endl;
+            // #endif
         }
         // dump_lio_state_to_log(fp);
     }
@@ -1933,17 +1925,8 @@ int main(int argc, char** argv)
         pcd_wait_save_rgbit->clear();
     }
 
-    // ローカル位置の保存
-    string local_pos_dir(string(string(root_dir) + "result/") + string("local_positions.csv"));
-    std::ofstream csvFile(local_pos_dir);
-    csvFile << "timestamp_sec,timestamp_nsec,x,y,z,pos_x,pos_y,pos_z,\n";
-    for (const auto& data : localPositions) {
-        csvFile << data.timestamp_sec << "," << data.timestamp_nsec << "," << data.x << "," << data.y << "," << data.z << ","
-                << data.pos_x << "," << data.pos_y << "," << data.pos_z << "\n";
-    }
-    csvFile.close();
+    local_positions.close(); // 自己位置ファイルの保存を終わる
 
-    
     cout << "*** mapping end ***" <<endl;
 
     // #ifndef DEPLOY

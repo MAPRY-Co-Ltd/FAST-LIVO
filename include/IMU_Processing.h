@@ -66,7 +66,8 @@ class ImuProcess
   #endif
 
   ros::NodeHandle nh;
-  ofstream fout_imu, fout_pose;
+  //ofstream fout_imu, fout_pose;
+  ofstream fout_pose;
   V3D cov_acc;
   V3D cov_gyr;
   V3D cov_acc_scale;
