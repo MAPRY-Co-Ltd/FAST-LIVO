@@ -1,8 +1,8 @@
 feature_extract_enable : 0
-point_filter_num : 3
+point_filter_num : 2
 max_iteration : 10
 dense_map_enable : 1
-filter_size_surf : 0.3
+filter_size_surf : 0.15
 filter_size_map : 0.3
 cube_side_length : 20
 debug : 0
@@ -15,10 +15,10 @@ ncc_en: false
 ncc_thre: 0
 img_point_cov : 100 # 1000
 laser_point_cov : 0.001 # 0.001
-cam_fx: 753.5565418822030
-cam_fy: 764.4965925326870
-cam_cx: 636.2099873378200
-cam_cy: 493.8097273600280
+cam_fx: 453.483063
+cam_fy: 453.254913
+cam_cx: 318.908851
+cam_cy: 234.238189
 pcd_save_interval: 800
 
 common:
@@ -44,11 +44,7 @@ camera:
     # img_topic:  /camera/image_color
     img_topic: /left_camera/image
     #xiyuan
-    Rcl: [-0.00870427152314,-0.99985795188504,-0.01443300763884,
-         -0.00227858310151,0.014453349042890,-0.99989294865025,
-          0.999959521038877,-0.00867045291182,-0.00240406530757]
-    Pcl: [-0.02606268231566, 0.051102889517511, -0.01798119661377]
-    
-pcd_save:
-    pcd_save_en: true
-    interval: 800
+    Rcl: [0.00162756,-0.999991,0.00390957,
+         -0.0126748,-0.00392989,-0.999912,
+          0.999918,0.00157786,-0.012681]
+    Pcl: [0.0409257, 0.0318424, -0.0927219]

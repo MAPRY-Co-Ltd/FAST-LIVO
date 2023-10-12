@@ -1208,17 +1208,22 @@ int main(int argc, char** argv)
 
 
     // フォルダが存在しなかったら作る
-    string points_dir1(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/");
-    string points_dir2(points_dir1 + string(DIR_KEY) + "/");
-    string points_dir3(points_dir2 +  + "pointcloud/");
-    if (!directoryExists(points_dir1)) {
-        createDirectory(points_dir1);
+    string points_dir_root(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/");
+    string points_dir_sub(points_dir_root + string(DIR_KEY) + "/");
+    string points_dir(points_dir_sub +  + "pointcloud/");
+    string location_dir(points_dir_sub +  + "location/");
+
+    if (!directoryExists(points_dir_root)) {
+        createDirectory(points_dir_root);
     }
-    if(!directoryExists(points_dir2)){
-        createDirectory(points_dir2);
+    if(!directoryExists(points_dir_sub)){
+        createDirectory(points_dir_sub);
     }
-    if(!directoryExists(points_dir3)){
-        createDirectory(points_dir3);
+    if(!directoryExists(points_dir)){
+        createDirectory(points_dir);
+    }
+    if(!directoryExists(location_dir)){
+        createDirectory(location_dir);
     }
 
     // pcl_visual_wait_pub->clear();
@@ -1339,7 +1344,7 @@ int main(int argc, char** argv)
     // else
     //     cout << "~~~~"<<ROOT_DIR<<" doesn't exist" << endl;
 
-    string local_pos_file(string(string(root_dir) + "result/") + string("local_positions.csv"));
+    string local_pos_file(location_dir + string("local_positions.csv"));
     local_positions.open(local_pos_file ,ios::out);
     local_positions << "timestamp_sec,timestamp_nsec,pos_x,pos_y,pos_z,rot_x,rot_y,rot_z,rot_w\n";
     local_positions.flush();
@@ -1413,9 +1418,20 @@ int main(int argc, char** argv)
         
         if(!fast_lio_is_ready){
             // スキャンスタートできた
-            std::ofstream outputFile(root_dir + "/result/scan_start_complete");  // ファイルを作る
-            outputFile.close();
+            //std::ofstream outputFile(root_dir + "/result/scan_start_complete");  // ファイルを作る
+            //outputFile.close();
+            // poseファイルのコピー
+            const std::string sourceFilePath = root_dir + "/Log/pose.txt";
+            const std::string destinationFilePath = location_dir + "pose.txt";
+            std::ifstream sourceStream(sourceFilePath, std::ios::binary);
+            std::ofstream destinationStream(destinationFilePath, std::ios::binary);
 
+            if (sourceStream.is_open() && destinationStream.is_open()) {
+                destinationStream << sourceStream.rdbuf();
+            }
+            sourceStream.close();
+            destinationStream.close();
+            
             cout<<"*** mapping start ***"<<endl;
         }
 
@@ -1895,8 +1911,7 @@ int main(int argc, char** argv)
             pcd_wait_save_rgbit->clear();
             scan_wait_num = 0;
         }
-
-
+        
         publish_frame_world(pubLaserCloudFullRes);
         //publish_visual_world_map(pubVisualCloud);
         publish_effect_world(pubLaserCloudEffect);
