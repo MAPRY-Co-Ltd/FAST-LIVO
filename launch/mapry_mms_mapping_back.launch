@@ -11,7 +11,7 @@
 	<!-- <node pkg="rosbag" type="play" name="rosbag" args="-r 1.0 -s 0.0 $(arg bag_name)"/> -->
 
 	<!-- fast livo start-->
-	<rosparam command="load" file="$(find fast_livo)/config/avia_resize.yaml" />
+	<rosparam command="load" file="$(find fast_livo)/config/avia_resize_$(arg lidar_position).yaml" />
 	<param name="name_key" type="string" value="$(arg name_key)"/>
 	<param name="lidar_position" type="string" value="$(arg lidar_position)"/>
 	<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping_$(arg lidar_position)" output="screen" >
