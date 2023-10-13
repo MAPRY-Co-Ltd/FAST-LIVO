@@ -96,7 +96,7 @@ condition_variable sig_buffer;
 // mutex mtx_buffer_pointcloud;
 
 string root_dir = ROOT_DIR;
-string map_file_path, lid_topic, imu_topic, img_topic, config_file, DIR_KEY, SAVE_MAP_NAME;
+string map_file_path, lid_topic, imu_topic, img_topic, config_file, LIDAR_POSITION, SAVE_MAP_NAME;
 M3D Eye3d(M3D::Identity());
 M3F Eye3f(M3F::Identity());
 V3D Zero3d(0, 0, 0);
@@ -1172,7 +1172,7 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<string>("common/imu_topic", imu_topic,"/livox/imu");
     nh.param<string>("camera/img_topic", img_topic,"/usb_cam/image_raw");
     nh.param<string>("name_key", SAVE_MAP_NAME, "sample");
-    nh.param<string>("lidar_position", DIR_KEY, "front");
+    nh.param<string>("lidar_position", LIDAR_POSITION, "front");
     nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
     nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
     nh.param<double>("filter_size_map",filter_size_map_min,0.5);
@@ -1193,6 +1193,8 @@ void readParameters(ros::NodeHandle &nh)
     nh.param<int>("patch_size", patch_size, 4);
     nh.param<double>("outlier_threshold",outlier_threshold,100);
     nh.param<double>("ncc_thre", ncc_thre, 100);
+
+    cout<<"********************************************"<<lid_topic<<"********************************************"<<endl;
 }
 
 int main(int argc, char** argv)
@@ -1209,7 +1211,7 @@ int main(int argc, char** argv)
 
     // フォルダが存在しなかったら作る
     string points_dir_root(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/");
-    string points_dir_sub(points_dir_root + string(DIR_KEY) + "/");
+    string points_dir_sub(points_dir_root + string(LIDAR_POSITION) + "/");
     string points_dir(points_dir_sub +  + "pointcloud/");
     string location_dir(points_dir_sub +  + "location/");
 
@@ -1292,7 +1294,9 @@ int main(int argc, char** argv)
     extR<<MAT_FROM_ARRAY(extrinR);
     Lidar_offset_to_IMU = extT;
     lidar_selection::LidarSelectorPtr lidar_selector(new lidar_selection::LidarSelector(grid_size, new SparseMap));
-    if(!vk::camera_loader::loadFromRosNs("laserMapping", lidar_selector->cam))
+
+    string load_node_name("laserMapping_" + string(LIDAR_POSITION));
+    if(!vk::camera_loader::loadFromRosNs(load_node_name, lidar_selector->cam))
         throw std::runtime_error("Camera model not correctly specified.");
     lidar_selector->MIN_IMG_COUNT = MIN_IMG_COUNT;
     lidar_selector->debug = debug;
@@ -1904,7 +1908,7 @@ int main(int argc, char** argv)
         scan_wait_num ++;
         if (pcd_wait_save_rgbit->size() > 0 && pcd_save_interval > 0  && scan_wait_num >= pcd_save_interval)
         {
-            string points_dir(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/" + string(DIR_KEY) + "/pointcloud/");
+            string points_dir(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/" + string(LIDAR_POSITION) + "/pointcloud/");
             pcd_index ++;
             string all_points_dir( points_dir + string(SAVE_MAP_NAME) + "_" + to_string(pcd_index) + string(".pcd"));
             pcl::io::savePCDFileBinary(all_points_dir, *pcd_wait_save_rgbit);
@@ -1962,7 +1966,7 @@ int main(int argc, char** argv)
     {
         // フォルダ構成
         // ./result/test/front/point_cloud/test_1.pcd
-        string points_dir(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/" + string(DIR_KEY) + "/pointcloud/");
+        string points_dir(string(root_dir) + "result/" + string(SAVE_MAP_NAME) + "/" + string(LIDAR_POSITION) + "/pointcloud/");
         pcd_index ++;
         string all_points_dir( points_dir + string(SAVE_MAP_NAME) + "_" + to_string(pcd_index) + string(".pcd"));
         pcl::io::savePCDFileBinary(all_points_dir, *pcd_wait_save_rgbit);
