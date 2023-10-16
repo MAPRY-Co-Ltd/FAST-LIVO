@@ -1469,7 +1469,7 @@ void readParameters(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "laserMapping_front");
+    ros::init(argc, argv, "laserMapping");
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
     image_transport::ImageTransport it(nh);
