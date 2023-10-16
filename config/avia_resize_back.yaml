@@ -15,10 +15,10 @@ ncc_en: false
 ncc_thre: 0
 img_point_cov : 100 # 1000
 laser_point_cov : 0.001 # 0.001
-cam_fx: 453.483063
-cam_fy: 453.254913
-cam_cx: 318.908851
-cam_cy: 234.238189
+cam_fx: 753.5565418822030
+cam_fy: 764.4965925326870
+cam_cx: 636.2099873378200
+cam_cy: 493.8097273600280
 pcd_save_interval: 800
 
 common:

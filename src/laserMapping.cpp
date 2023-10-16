@@ -1151,58 +1151,329 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
 }
 #endif         
 
-void readParameters(ros::NodeHandle &nh)
+void readParameters(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
-    nh.param<int>("dense_map_enable",dense_map_en,1);
-    nh.param<int>("img_enable",img_en,1);
-    nh.param<int>("lidar_enable",lidar_en,1);
-    nh.param<int>("debug", debug, 0);
-    nh.param<int>("max_iteration",NUM_MAX_ITERATIONS,4);
-    nh.param<bool>("ncc_en",ncc_en,false);
-    nh.param<int>("min_img_count",MIN_IMG_COUNT,1000);    
-    nh.param<double>("cam_fx",cam_fx,453.483063);
-    nh.param<double>("cam_fy",cam_fy,453.254913);
-    nh.param<double>("cam_cx",cam_cx,318.908851);
-    nh.param<double>("cam_cy",cam_cy,234.238189);
-    nh.param<int>("pcd_save_interval",pcd_save_interval,1000);
-    nh.param<double>("laser_point_cov",LASER_POINT_COV,0.001);
-    nh.param<double>("img_point_cov",IMG_POINT_COV,10);
-    nh.param<string>("map_file_path",map_file_path,"");
-    nh.param<string>("common/lid_topic",lid_topic,"/livox/lidar");
-    nh.param<string>("common/imu_topic", imu_topic,"/livox/imu");
-    nh.param<string>("camera/img_topic", img_topic,"/usb_cam/image_raw");
-    nh.param<string>("name_key", SAVE_MAP_NAME, "sample");
-    nh.param<string>("lidar_position", LIDAR_POSITION, "front");
-    nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
-    nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
-    nh.param<double>("filter_size_map",filter_size_map_min,0.5);
-    nh.param<double>("cube_side_length",cube_len,200);
-    nh.param<double>("mapping/fov_degree",fov_deg,180);
-    nh.param<double>("mapping/gyr_cov_scale",gyr_cov_scale,1.0);
-    nh.param<double>("mapping/acc_cov_scale",acc_cov_scale,1.0);
-    nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
-    nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, AVIA);
-    nh.param<int>("preprocess/scan_line", p_pre->N_SCANS, 16);
-    nh.param<int>("point_filter_num", p_pre->point_filter_num, 2);
-    nh.param<bool>("feature_extract_enable", p_pre->feature_enabled, 0);
-    nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
-    nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
-    nh.param<vector<double>>("camera/Pcl", cameraextrinT, vector<double>());
-    nh.param<vector<double>>("camera/Rcl", cameraextrinR, vector<double>());
-    nh.param<int>("grid_size", grid_size, 40);
-    nh.param<int>("patch_size", patch_size, 4);
-    nh.param<double>("outlier_threshold",outlier_threshold,100);
-    nh.param<double>("ncc_thre", ncc_thre, 100);
+    // nh.param<int>("dense_map_enable",dense_map_en,1);
+    // nh.param<int>("img_enable",img_en,1);
+    // nh.param<int>("lidar_enable",lidar_en,1);
+    // nh.param<int>("debug", debug, 0);
+    // nh.param<int>("max_iteration",NUM_MAX_ITERATIONS,4);
+    // nh.param<bool>("ncc_en",ncc_en,false);
+    // nh.param<int>("min_img_count",MIN_IMG_COUNT,1000);    
+    // nh.param<double>("cam_fx",cam_fx,453.483063);
+    // nh.param<double>("cam_fy",cam_fy,453.254913);
+    // nh.param<double>("cam_cx",cam_cx,318.908851);
+    // nh.param<double>("cam_cy",cam_cy,234.238189);
+    // nh.param<int>("pcd_save_interval",pcd_save_interval,1000);
+    // nh.param<double>("laser_point_cov",LASER_POINT_COV,0.001);
+    // nh.param<double>("img_point_cov",IMG_POINT_COV,10);
+    // nh.param<string>("map_file_path",map_file_path,"");
+    // nh.param<string>("common/lid_topic",lid_topic,"/livox/lidar");
+    // nh.param<string>("common/imu_topic", imu_topic,"/livox/imu");
+    // nh.param<string>("camera/img_topic", img_topic,"/usb_cam/image_raw");
+    // nh.param<string>("name_key", SAVE_MAP_NAME, "sample");
+    // nh.param<string>("lidar_position", LIDAR_POSITION, "front");
+    // nh.param<double>("filter_size_corner",filter_size_corner_min,0.5);
+    // nh.param<double>("filter_size_surf",filter_size_surf_min,0.5);
+    // nh.param<double>("filter_size_map",filter_size_map_min,0.5);
+    // nh.param<double>("cube_side_length",cube_len,200);
+    // nh.param<double>("mapping/fov_degree",fov_deg,180);
+    // nh.param<double>("mapping/gyr_cov_scale",gyr_cov_scale,1.0);
+    // nh.param<double>("mapping/acc_cov_scale",acc_cov_scale,1.0);
+    // nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
+    // nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, AVIA);
+    // nh.param<int>("preprocess/scan_line", p_pre->N_SCANS, 16);
+    // nh.param<int>("point_filter_num", p_pre->point_filter_num, 2);
+    // nh.param<bool>("feature_extract_enable", p_pre->feature_enabled, 0);
+    // nh.param<vector<double>>("mapping/extrinsic_T", extrinT, vector<double>());
+    // nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
+    // nh.param<vector<double>>("camera/Pcl", cameraextrinT, vector<double>());
+    // nh.param<vector<double>>("camera/Rcl", cameraextrinR, vector<double>());
+    // nh.param<int>("grid_size", grid_size, 40);
+    // nh.param<int>("patch_size", patch_size, 4);
+    // nh.param<double>("outlier_threshold",outlier_threshold,100);
+    // nh.param<double>("ncc_thre", ncc_thre, 100);
 
-    cout<<"********************************************"<<lid_topic<<"********************************************"<<endl;
+    if (pnh.hasParam("dense_map_enable"))
+    { 
+        pnh.getParam("dense_map_enable",dense_map_en);
+    }else{
+        dense_map_en = 1;
+    }
+    
+    if (pnh.hasParam("img_enable"))
+    { 
+        pnh.getParam("img_enable",img_en);
+    }else{
+        img_en = 1;
+    }
+
+    if (pnh.hasParam("lidar_enable"))
+    { 
+        pnh.getParam("lidar_enable",lidar_en);
+    }else{
+        lidar_en = 1;
+    }
+
+    if (pnh.hasParam("debug"))
+    { 
+        pnh.getParam("debug",debug);
+    }else{
+        lidar_en = 0;
+    }
+
+    if (pnh.hasParam("max_iteration"))
+    { 
+        pnh.getParam("max_iteration", NUM_MAX_ITERATIONS);
+    }else{
+        NUM_MAX_ITERATIONS = 4;
+    }
+
+    if (pnh.hasParam("ncc_en"))
+    { 
+        pnh.getParam("ncc_en", ncc_en);
+    }else{
+        ncc_en = false;
+    }
+
+    if (pnh.hasParam("min_img_count"))
+    { 
+        pnh.getParam("min_img_count", MIN_IMG_COUNT);
+    }else{
+        MIN_IMG_COUNT = 1000;
+    }
+
+    if (pnh.hasParam("cam_fx"))
+    { 
+        pnh.getParam("cam_fx", cam_fx);
+    }else{
+        cam_fx = 453.483063;
+    }
+
+    if (pnh.hasParam("cam_fy"))
+    { 
+        pnh.getParam("cam_fy", cam_fy);
+    }else{
+        cam_fy = 453.254913;
+    }
+
+    if (pnh.hasParam("cam_cx"))
+    { 
+        pnh.getParam("cam_cx", cam_cx);
+    }else{
+        cam_cx = 318.908851;
+    }
+
+    if (pnh.hasParam("cam_cy"))
+    { 
+        pnh.getParam("cam_cy", cam_cy);
+    }else{
+        cam_cy = 234.238189;
+    }
+
+    if (pnh.hasParam("pcd_save_interval"))
+    { 
+        pnh.getParam("pcd_save_interval", pcd_save_interval);
+    }else{
+        pcd_save_interval = 1000;
+    }
+
+    if (pnh.hasParam("laser_point_cov"))
+    { 
+        pnh.getParam("laser_point_cov", LASER_POINT_COV);
+    }else{
+        LASER_POINT_COV = 0.001;
+    }
+
+    if (pnh.hasParam("img_point_cov"))
+    { 
+        pnh.getParam("img_point_cov", IMG_POINT_COV);
+    }else{
+        IMG_POINT_COV = 10;
+    }
+
+    if (pnh.hasParam("map_file_path"))
+    { 
+        pnh.getParam("map_file_path", map_file_path);
+    }else{
+        map_file_path = "";
+    }
+
+    if (pnh.hasParam("common/lid_topic"))
+    { 
+        pnh.getParam("common/lid_topic",lid_topic);
+    }else{
+        lid_topic = "/livox/lidar";
+    }
+
+    if (pnh.hasParam("common/imu_topic"))
+    { 
+        pnh.getParam("common/imu_topic",imu_topic);
+    }else{
+        imu_topic = "/livox/imu";
+    }
+
+    if (pnh.hasParam("camera/img_topic"))
+    { 
+        pnh.getParam("camera/img_topic",img_topic);
+    }else{
+        img_topic = "/usb_cam/image_raw";
+    }
+
+    if (pnh.hasParam("name_key"))
+    { 
+        pnh.getParam("name_key",SAVE_MAP_NAME);
+    }else{
+        SAVE_MAP_NAME = "sample";
+    }
+
+    if (pnh.hasParam("lidar_position"))
+    { 
+        pnh.getParam("lidar_position",LIDAR_POSITION);
+    }else{
+        LIDAR_POSITION = "front";
+    }
+
+    if (pnh.hasParam("filter_size_corner"))
+    { 
+        pnh.getParam("filter_size_corner",filter_size_corner_min);
+    }else{
+        filter_size_corner_min = 0.5;
+    }
+
+    if (pnh.hasParam("filter_size_surf"))
+    { 
+        pnh.getParam("filter_size_surf",filter_size_surf_min);
+    }else{
+        filter_size_surf_min = 0.5;
+    }
+
+    if (pnh.hasParam("filter_size_map"))
+    { 
+        pnh.getParam("filter_size_map",filter_size_map_min);
+    }else{
+        filter_size_map_min = 0.5;
+    }
+
+    if (pnh.hasParam("cube_side_length"))
+    { 
+        pnh.getParam("cube_side_length",cube_len);
+    }else{
+        cube_len = 200;
+    }
+
+    if (pnh.hasParam("mapping/fov_degree"))
+    { 
+        pnh.getParam("mapping/fov_degree",fov_deg);
+    }else{
+        fov_deg = 180;
+    }
+
+    if (pnh.hasParam("mapping/gyr_cov_scale"))
+    { 
+        pnh.getParam("mapping/gyr_cov_scale",gyr_cov_scale);
+    }else{
+        gyr_cov_scale = 1.0;
+    }
+
+    if (pnh.hasParam("mapping/gyr_cov_scale"))
+    { 
+        pnh.getParam("mapping/gyr_cov_scale",gyr_cov_scale);
+    }else{
+        gyr_cov_scale = 1.0;
+    }
+
+    if (pnh.hasParam("preprocess/blind"))
+    { 
+        pnh.getParam("preprocess/blind", p_pre->blind);
+    }else{
+        p_pre->blind = 0.01;
+    }
+
+    if (pnh.hasParam("preprocess/lidar_type"))
+    { 
+        pnh.getParam("preprocess/lidar_type", p_pre->lidar_type);
+    }else{
+        p_pre->lidar_type = AVIA;
+    }
+
+    if (pnh.hasParam("preprocess/scan_line"))
+    { 
+        pnh.getParam("preprocess/scan_line", p_pre->N_SCANS);
+    }else{
+        p_pre->N_SCANS = 16;
+    }
+
+    if (pnh.hasParam("point_filter_num"))
+    { 
+        pnh.getParam("point_filter_num", p_pre->point_filter_num);
+    }else{
+        p_pre->point_filter_num = 2;
+    }
+
+    if (pnh.hasParam("feature_extract_enable"))
+    { 
+        pnh.getParam("feature_extract_enable", p_pre->feature_enabled);
+    }else{
+        p_pre->feature_enabled = 0;
+    }
+
+    if (pnh.hasParam("mapping/extrinsic_T"))
+    { 
+        pnh.getParam("mapping/extrinsic_T", extrinT);
+    }
+
+    if (pnh.hasParam("mapping/extrinsic_R"))
+    { 
+        pnh.getParam("mapping/extrinsic_R", extrinR);
+    }
+
+    if (pnh.hasParam("camera/Pcl"))
+    { 
+        pnh.getParam("camera/Pcl", cameraextrinT);
+    }
+
+    if (pnh.hasParam("camera/Rcl"))
+    { 
+        pnh.getParam("camera/Rcl", cameraextrinR);
+    }
+
+    if (pnh.hasParam("grid_size"))
+    { 
+        pnh.getParam("grid_size", grid_size);
+    }else{
+        grid_size = 40;
+    }
+
+    if (pnh.hasParam("patch_size"))
+    { 
+        pnh.getParam("patch_size", patch_size);
+    }else{
+        patch_size = 4;
+    }
+
+    if (pnh.hasParam("outlier_threshold"))
+    { 
+        pnh.getParam("outlier_threshold", outlier_threshold);
+    }else{
+        outlier_threshold = 100;
+    }
+
+    if (pnh.hasParam("ncc_thre"))
+    { 
+        pnh.getParam("ncc_thre", ncc_thre);
+    }else{
+        ncc_thre = 100;
+    }
 }
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "laserMapping");
+    ros::init(argc, argv, "laserMapping_front");
     ros::NodeHandle nh;
+    ros::NodeHandle pnh("~");
     image_transport::ImageTransport it(nh);
-    readParameters(nh);
+    readParameters(nh, pnh);
     cout<<"debug:"<<debug<<" MIN_IMG_COUNT: "<<MIN_IMG_COUNT<<endl;
     pcl_wait_pub->clear();
     pcl_wait_rgbit->clear();
