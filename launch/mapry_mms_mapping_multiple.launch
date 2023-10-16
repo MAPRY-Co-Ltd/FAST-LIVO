@@ -1,49 +1,80 @@
 <launch>
 <!-- Launch file for Livox AVIA LiDAR -->
-	<!-- ************************************************************引数********************************************************************* -->
+	<!-- 引数 -->
 	<arg name="rviz" default="true" />
 	<arg name="product" default="true" />
-	<arg name="name_key" default="slave_test" />
-	<!-- ************************************************************引数********************************************************************* -->
+	<arg name="name_key" default="multiple_test" />
 
-	<!-- Slaveの定義 -->
-	<machine name="back_jetson" address="192.168.2.20" env-loader="/home/jetson/Mapry_MMS/command/back_host_environ.sh" user="jetson" password="CL30l3uwg3DTEZ1W" default="true"/>
+	<group ns="front">
+		<!-- Master -->
+		<!-- FAST-LIVO -->
+		<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping_front" output="screen" >
+			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_front.yaml" />
+			<rosparam command="load" file="$(find fast_livo)/config/avia_resize_front.yaml" />
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" type="string" value="front"/>
+		</node>
 
-	<!-- ************************************************************FAST-LIVO********************************************************************* -->
-
-	<!-- MasterのLiDARを起動 -->
-	<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping_front" output="screen" >
-		<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_front.yaml" />
-		<rosparam command="load" file="$(find fast_livo)/config/avia_resize_front.yaml" />
-		<param name="name_key" type="string" value="$(arg name_key)"/>
-		<param name="lidar_position" type="string" value="front"/>
-	</node>
-
-	<!-- SlaveのLiDARを起動 -->
-	<node machine="back_jetson" name="laserMapping_back" pkg="fast_livo" type="fastlivo_mapping" >
-		<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_back.yaml" />
-		<rosparam command="load" file="$(find fast_livo)/config/avia_resize_back.yaml" />
-		<param name="name_key" type="string" value="$(arg name_key)"/>
-		<param name="lidar_position" type="string" value="back"/>
-	</node>
-	<!-- ************************************************************FAST-LIVO********************************************************************* -->
-
-
-	<group if="$(arg product)">
-		<!-- *******************************************************カメラ************************************************************************** -->
-		<!-- Masterのカメラを起動 -->
+		<!-- カメラ -->
 		<node pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture_front" output="screen">
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_front.yaml"/>
 		</node>
-		
-		<!-- Slaveのカメラを起動 -->
+
+		<!-- LIVOX-ROS-DRIVER -->
+		<arg name="lvx_file_path" default="livox_test.lvx"/>
+		<arg name="bd_list" default="100000000000000"/>
+		<arg name="xfer_format" default="1"/>
+		<arg name="multi_topic" default="0"/>
+		<arg name="data_src" default="0"/>
+		<arg name="publish_freq" default="10.0"/>
+		<arg name="output_type" default="0"/>
+		<arg name="cmdline_arg" default="$(arg bd_list)"/>
+		<arg name="msg_frame_id" default="livox_frame"/>
+		<arg name="lidar_bag" default="true"/>
+		<arg name="imu_bag" default="true"/>
+
+		<param name="xfer_format" value="$(arg xfer_format)"/>
+		<param name="multi_topic" value="$(arg multi_topic)"/>
+		<param name="data_src" value="$(arg data_src)"/>
+		<param name="publish_freq" type="double" value="$(arg publish_freq)"/>
+		<param name="output_data_type" value="$(arg output_type)"/>
+		<param name="cmdline_str" type="string" value="$(arg bd_list)"/>
+		<param name="cmdline_file_path" type="string" value="$(arg lvx_file_path)"/>
+		<param name="user_config_path" type="string" value="$(find livox_ros_driver)/config/livox_lidar_config.json"/>
+		<param name="frame_id" type="string" value="$(arg msg_frame_id)"/>
+		<param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
+		<param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
+		<node name="livox_lidar_publisher" pkg="livox_ros_driver"
+			type="livox_ros_driver_node" required="true"
+			output="screen" args="$(arg cmdline_arg)">
+				<remap from="/livox/lidar" to="/livox/lidar_front" />
+				<remap from="/livox/imu" to="/livox/imu_front" />
+		</node>
+
+		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/front_camera/image raw out:=/front_camera/image" output="screen" respawn="true"/>
+		launch-prefix="gdb -ex run --args" launch-prefix="valgrind --leak-check=full --show-leak-kinds=all"
+	</group>
+
+
+	<group ns="back">
+
+		<!-- Slave -->
+		<machine name="back_jetson" address="192.168.2.20" env-loader="/home/jetson/Mapry_MMS/command/back_host_environ.sh" user="jetson" password="CL30l3uwg3DTEZ1W" default="true"/>
+
+		<!-- FAST-LIVO -->
+		<node machine="back_jetson" name="laserMapping_back" pkg="fast_livo" type="fastlivo_mapping" >
+			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_back.yaml" />
+			<rosparam command="load" file="$(find fast_livo)/config/avia_resize_back.yaml" />
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" type="string" value="back"/>
+		</node>
+
+		<!-- カメラ -->
 		<node machine="back_jetson" pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture_back" output="screen">
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_back.yaml"/>
 		</node>
-		<!-- *******************************************************カメラ************************************************************************** -->
 
-
-		<!-- *******************************************************LIVOX-ROS-DRIVER************************************************************************** -->
+		<!-- LIVOX-ROS-DRIVER -->
 		<arg name="lvx_file_path" default="livox_test.lvx"/>
 		<arg name="bd_list" default="100000000000000"/>
 		<arg name="xfer_format" default="1"/>
@@ -68,29 +99,14 @@
 		<param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
 		<param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
 
-
-		<!-- MasterのDriverを起動 -->
-		<node name="livox_lidar_publisher_front" pkg="livox_ros_driver"
-			type="livox_ros_driver_node" required="true"
-			output="screen" args="$(arg cmdline_arg)">
-				<remap from="/livox/lidar" to="/livox/lidar_front" />
-				<remap from="/livox/imu" to="/livox/imu_front" />
-		</node>
-
-		<!-- SlaveのDriverを起動 -->
-		<node machine="back_jetson" name="livox_lidar_publisher_back" pkg="livox_ros_driver"
+		<node machine="back_jetson" name="livox_lidar_publisher" pkg="livox_ros_driver"
 			type="livox_ros_driver_node" required="true"
 			output="screen" args="$(arg cmdline_arg)">
 				<remap from="/livox/lidar" to="/livox/lidar_back" />
 				<remap from="/livox/imu" to="/livox/imu_back" />
 		</node>
-		<!-- *******************************************************LIVOX-ROS-DRIVER************************************************************************** -->
+		
+		<node machine="back_jetson" pkg="image_transport" type="republish" name="republish_back" args="compressed in:=/back_camera/image raw out:=/back_camera/image" output="screen" respawn="true"/>
+		launch-prefix="gdb -ex run --args" launch-prefix="valgrind --leak-check=full --show-leak-kinds=all"
 	</group>
-
-	<group if="$(arg rviz)">
-		<node machine="back_jetson" launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_livo)/rviz_cfg/loam_livox_rgb.rviz" />
-	</group>
-	<node machine="back_jetson" pkg="image_transport" type="republish" name="republish" args="compressed in:=/left_camera/image raw out:=/left_camera/image" output="screen" respawn="true"/>
-launch-prefix="gdb -ex run --args" launch-prefix="valgrind --leak-check=full --show-leak-kinds=all"
-
 </launch> 	
