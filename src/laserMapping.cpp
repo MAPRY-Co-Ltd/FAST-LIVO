@@ -1505,7 +1505,6 @@ int main(int argc, char** argv)
         nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
     ros::Subscriber sub_imu = nh.subscribe(imu_topic, 200000, imu_cbk);
     ros::Subscriber sub_img = nh.subscribe(img_topic, 200000, img_cbk);
-    cout<<"img_topic:"<<img_topic<<endl;
 
     image_transport::Publisher img_pub = it.advertise("/rgb_img", 1);
     ros::Publisher pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>
@@ -1566,7 +1565,8 @@ int main(int argc, char** argv)
     Lidar_offset_to_IMU = extT;
     lidar_selection::LidarSelectorPtr lidar_selector(new lidar_selection::LidarSelector(grid_size, new SparseMap));
 
-    string load_node_name("laserMapping_" + string(LIDAR_POSITION));
+
+    string load_node_name("/" + string(LIDAR_POSITION) + "/laserMapping");
     if(!vk::camera_loader::loadFromRosNs(load_node_name, lidar_selector->cam))
         throw std::runtime_error("Camera model not correctly specified.");
     lidar_selector->MIN_IMG_COUNT = MIN_IMG_COUNT;
