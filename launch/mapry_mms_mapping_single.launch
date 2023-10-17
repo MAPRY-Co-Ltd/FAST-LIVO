@@ -3,7 +3,8 @@
 	<arg name="rviz" default="true" />
 	<arg name="product" default="true" />
 	<arg name="name_key" default="front_sample" />
-	<arg name="lidar_position" default="front" />
+	<arg name="lidar1" default="front" />
+	<arg name="lidar1_scan_mode" default="0" /> <!-- 0: intensity, 1: RGB + intensity -->
 
 	<!-- LIVOX-ROS-DRIVER 引数 -->
 	<arg name="lvx_file_path" default="livox_test.lvx"/>
@@ -18,20 +19,23 @@
 	<arg name="lidar_bag" default="true"/>
 	<arg name="imu_bag" default="true"/>
 	
-	<group ns="$(arg lidar_position)">
+	<group ns="$(arg lidar1)">
+		<!-- Master -->
+
 		<!-- FAST-LIVO -->
 		<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen" >
-			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_front.yaml" />
-			<rosparam command="load" file="$(find fast_livo)/config/avia_resize_front.yaml" />
-			<param name="name_key" type="string" value="$(arg name_key)"/>
-			<param name="lidar_position" type="string" value="$(arg lidar_position)"/>
+			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_$(arg lidar1).yaml" />
+			<rosparam command="load" file="$(find fast_livo)/config/avia_resize_$(arg lidar1).yaml" />
+			<param name="name_key" type="string" value="$(arg name_key)"/>			
+			<param name="img_enable" value="$(arg lidar1_scan_mode)"/>
+			<param name="lidar_position" type="string" value="$(arg lidar1)"/>
 		</node>
 
 		<!-- カメラ -->
 		<node pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture" output="screen">
-			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar_position).yaml"/>
+			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
 		</node>
-		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar_position)_camera/image raw out:=/$(arg lidar_position)_camera/image" output="screen" respawn="true"/>
+		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar1)_camera/image raw out:=/$(arg lidar1)_camera/image" output="screen" respawn="true"/>
 
 		<!-- LIVOX-ROS-DRIVER -->
 		<param name="xfer_format" value="$(arg xfer_format)"/>
@@ -45,14 +49,14 @@
 		<param name="frame_id" type="string" value="$(arg msg_frame_id)"/>
 		<param name="enable_lidar_bag" type="bool" value="$(arg lidar_bag)"/>
 		<param name="enable_imu_bag" type="bool" value="$(arg imu_bag)"/>
+
 		<node name="livox_lidar_publisher" pkg="livox_ros_driver"
 			type="livox_ros_driver_node" required="true"
 			output="screen" args="$(arg cmdline_arg)">
-				<remap from="/$(arg lidar_position)/livox/lidar" to="/livox/lidar_$(arg lidar_position)" />
-				<remap from="/$(arg lidar_position)/livox/imu" to="/livox/imu_$(arg lidar_position)" />
+				<remap from="/$(arg lidar1)/livox/lidar" to="/livox/lidar_$(arg lidar1)" />
+				<remap from="/$(arg lidar1)/livox/imu" to="/livox/imu_$(arg lidar1)" />
 		</node>
 	</group>
-		
 
 	<group if="$(arg rviz)">
 		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_livo)/rviz_cfg/loam_livox_rgb.rviz" />
