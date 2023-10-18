@@ -97,5 +97,12 @@
 				<remap from="/$(arg lidar2)/livox/lidar" to="/livox/lidar_$(arg lidar2)" />
 				<remap from="/$(arg lidar2)/livox/imu" to="/livox/imu_$(arg lidar2)" />
 		</node>
+
+		<!-- Masterへ転送 -->
+		<node machine="back_jetson" pkg="scan_data_archive" type="scan_data_synchronize.py" name="scan_data_synchronize" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="run_periodically" value="true"/>
+        	<rosparam command="load" file="$(find scan_data_archive)/config/params.yaml"/>
+    	</node>
 	</group>
 </launch> 	
