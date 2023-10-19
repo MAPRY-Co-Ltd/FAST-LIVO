@@ -66,6 +66,8 @@
 #include <vikit/camera_loader.h>
 #include"lidar_selection.h"
 
+#include <std_msgs/String.h>
+
 #ifdef USE_ikdtree
     #ifdef USE_ikdforest
     #include <ikd-Forest/ikd_Forest.h>
@@ -1003,6 +1005,16 @@ void publish_path(const ros::Publisher pubPath)
     pubPath.publish(path);
 }
 
+void publish_scan_state_message(const std::string& message, ros::Publisher& pub)
+{
+    std_msgs::String msg;
+    std::stringstream ss;
+    ss << LIDAR_POSITION << " " << message;
+    msg.data = ss.str();
+    // ROS_INFO("%s", msg.data.c_str());
+    pub.publish(msg);
+}
+
 bool createDirectory(const std::string& path) {
     return mkdir(path.c_str(), 0777) == 0;
 }
@@ -1524,6 +1536,9 @@ int main(int argc, char** argv)
     ros::Publisher pubPath          = nh.advertise<nav_msgs::Path> 
             ("/path", 10);
 
+    ros::Publisher pubMmsScanState = nh.advertise<std_msgs::String>
+            ("/mms_scan_status", 1000);
+
 #ifdef DEPLOY
     ros::Publisher mavros_pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10);
 #endif
@@ -1708,6 +1723,7 @@ int main(int argc, char** argv)
             destinationStream.close();
             
             cout<<"*** mapping start ***"<<endl;
+            publish_scan_state_message("mapping start", pubMmsScanState);
         }
 
         fast_lio_is_ready = true;
@@ -2157,6 +2173,7 @@ int main(int argc, char** argv)
         if(local_pos_save_counter > 10){
             local_pos_save = true;
             local_pos_save_counter = 0;
+            publish_scan_state_message("points count:" + std::to_string(laserCloudWorld->size()), pubMmsScanState); // 点群数カウント
         }
 
         for (int i = 0; i < size; i++)
@@ -2173,7 +2190,6 @@ int main(int argc, char** argv)
             *pcd_wait_save_rgbit += *laserCloudWorldRGB;
         }
 
-
         // 分割保存設定
         static int scan_wait_num = 0;
         scan_wait_num ++;
@@ -2186,7 +2202,7 @@ int main(int argc, char** argv)
             pcd_wait_save_rgbit->clear();
             scan_wait_num = 0;
         }
-        
+
         publish_frame_world(pubLaserCloudFullRes);
         //publish_visual_world_map(pubVisualCloud);
         publish_effect_world(pubLaserCloudEffect);
@@ -2247,6 +2263,7 @@ int main(int argc, char** argv)
     local_positions.close(); // 自己位置ファイルの保存を終わる
 
     cout << "*** mapping end ***" <<endl;
+    publish_scan_state_message("mapping end", pubMmsScanState);
 
     // #ifndef DEPLOY
     // vector<double> t, s_vec, s_vec2, s_vec3, s_vec4, s_vec5, s_vec6, s_vec7;    

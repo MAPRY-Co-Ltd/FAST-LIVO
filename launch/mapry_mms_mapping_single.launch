@@ -5,7 +5,8 @@
 	<arg name="name_key" default="front_sample" />
 	<arg name="lidar1" default="front" />
 	<arg name="lidar1_scan_mode" default="0" /> <!-- 0: intensity, 1: RGB + intensity -->
-
+	<arg name="is_usb_saving" default="false" /> <!-- USBへの定期保存 -->
+	
 	<!-- LIVOX-ROS-DRIVER 引数 -->
 	<arg name="lvx_file_path" default="livox_test.lvx"/>
 	<arg name="bd_list" default="100000000000000"/>
@@ -56,6 +57,15 @@
 				<remap from="/$(arg lidar1)/livox/lidar" to="/livox/lidar_$(arg lidar1)" />
 				<remap from="/$(arg lidar1)/livox/imu" to="/livox/imu_$(arg lidar1)" />
 		</node>
+
+		<!-- USBへ転送 -->
+		<group if="$(arg is_usb_saving)">
+			<node pkg="scan_data_archive" type="scan_data_usb_saving.py" name="scan_data_usb_saving" output="screen">
+				<param name="name_key" type="string" value="$(arg name_key)"/>
+				<param name="run_periodically" value="true"/>
+				<rosparam command="load" file="$(find scan_data_archive)/config/params.yaml"/>
+    		</node>
+		</group>
 	</group>
 
 	<group if="$(arg rviz)">
