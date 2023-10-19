@@ -1011,7 +1011,7 @@ void publish_scan_state_message(const std::string& message, ros::Publisher& pub)
     std::stringstream ss;
     ss << LIDAR_POSITION << " " << message;
     msg.data = ss.str();
-    // ROS_INFO("%s", msg.data.c_str());
+    // 修正ROS_INFO("%s", msg.data.c_str());
     pub.publish(msg);
 }
 
