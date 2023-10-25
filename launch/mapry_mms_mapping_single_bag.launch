@@ -35,13 +35,13 @@
 		</node>
 
 		<!-- カメラ -->
-		<node pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture" output="screen">
+		<!-- <node pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture" output="screen">
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
-		</node>
+		</node> -->
 		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar1)_camera/image raw out:=/$(arg lidar1)_camera/image" output="screen" respawn="true"/>
 
 		<!-- LIVOX-ROS-DRIVER -->
-		<param name="xfer_format" value="$(arg xfer_format)"/>
+		<!-- <param name="xfer_format" value="$(arg xfer_format)"/>
 		<param name="multi_topic" value="$(arg multi_topic)"/>
 		<param name="data_src" value="$(arg data_src)"/>
 		<param name="publish_freq" type="double" value="$(arg publish_freq)"/>
@@ -58,7 +58,7 @@
 			output="screen" args="$(arg cmdline_arg)">
 				<remap from="/$(arg lidar1)/livox/lidar" to="/livox/lidar_$(arg lidar1)" />
 				<remap from="/$(arg lidar1)/livox/imu" to="/livox/imu_$(arg lidar1)" />
-		</node>
+		</node> -->
 
 		<!-- USBへ転送 -->
 		<group if="$(arg is_usb_saving)">
@@ -75,7 +75,7 @@
 	</group>
 
 	<group if="$(arg bag)">
-	  <node pkg="rosbag" type="record" name="record" args="-o $(find fast_livo)/bag/$(arg name_key) /livox/imu_front /livox/lidar_front /front_camera/image/compressed"/>
+	  <node pkg="rosbag" type="record" name="record" args="-o $(find fast_livo)/bag/$(arg name_key) /livox/imu_front /livox/lidar_front /front_camera/image"/>
 	</group>
 
 	launch-prefix="gdb -ex run --args" launch-prefix="valgrind --leak-check=full --show-leak-kinds=all"
