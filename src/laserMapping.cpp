@@ -2167,13 +2167,16 @@ int main(int argc, char** argv)
 
         pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB(new pcl::PointCloud<CustomPointT>(size, 1));
 
-        // ローカル位置の保存
+        // ローカル位置保存フラグ、点群数publish管理
         static int local_pos_save_counter = 0;
+        static int points_counter = 0;
         local_pos_save_counter ++;
+        points_counter += size;
         if(local_pos_save_counter > 10){
             local_pos_save = true;
             local_pos_save_counter = 0;
-            publish_scan_state_message("points count:" + std::to_string(laserCloudWorld->size()), pubMmsScanState); // 点群数カウント
+            publish_scan_state_message("points count:" + std::to_string(points_counter), pubMmsScanState); // 点群数カウント
+            points_counter = 0;
         }
 
         for (int i = 0; i < size; i++)
