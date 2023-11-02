@@ -38,7 +38,7 @@
 		<!-- <node pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture" output="screen">
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
 		</node> -->
-		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar1)_camera/image raw out:=/$(arg lidar1)_camera/image" output="screen" respawn="true"/>
+		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar1)_camera/image raw out:=/$(arg lidar1)_camera/image" output="screen"/>
 
 		<!-- LIVOX-ROS-DRIVER -->
 		<!-- <param name="xfer_format" value="$(arg xfer_format)"/>
