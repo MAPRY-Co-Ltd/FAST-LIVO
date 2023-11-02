@@ -86,7 +86,7 @@
 		<node machine="back_jetson" pkg="Image_Capture" type="baumer_camera_capture.py" name="baumer_camera_capture" output="screen">
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar2).yaml"/>
 		</node>
-		<node machine="back_jetson" pkg="image_transport" type="republish" name="republish_back" args="compressed in:=/$(arg lidar2)_camera/image raw out:=/$(arg lidar2)_camera/image" output="screen" respawn="true"/>
+		<node machine="back_jetson" pkg="image_transport" type="republish" name="republish_back" args="compressed in:=/$(arg lidar2)_camera/image raw out:=/$(arg lidar2)_camera/image" output="screen"/>
 
 		<!-- LIVOX-ROS-DRIVER -->
 		<param name="xfer_format" value="$(arg xfer_format)"/>
