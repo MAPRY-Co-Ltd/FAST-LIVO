@@ -1497,6 +1497,7 @@ int main(int argc, char** argv)
     string points_dir_sub(points_dir_root + string(LIDAR_POSITION) + "/");
     string points_dir(points_dir_sub +  + "pointcloud/");
     string location_dir(points_dir_sub +  + "location/");
+    string coordinate_dir(points_dir_sub +  + "coordinate/");
 
     if (!directoryExists(points_dir_root)) {
         createDirectory(points_dir_root);
@@ -1509,6 +1510,9 @@ int main(int argc, char** argv)
     }
     if(!directoryExists(location_dir)){
         createDirectory(location_dir);
+    }
+    if(!directoryExists(coordinate_dir)){
+        createDirectory(coordinate_dir);
     }
 
     // pcl_visual_wait_pub->clear();
