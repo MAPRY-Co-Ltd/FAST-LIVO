@@ -1497,7 +1497,7 @@ int main(int argc, char** argv)
     string points_dir_sub(points_dir_root + string(LIDAR_POSITION) + "/");
     string points_dir(points_dir_sub +  + "pointcloud/");
     string location_dir(points_dir_sub +  + "location/");
-    string image_dir(points_dir_sub +  + "image/");
+    string image_dir(points_dir_sub +  + "camera/");
 
     if (!directoryExists(points_dir_root)) {
         createDirectory(points_dir_root);

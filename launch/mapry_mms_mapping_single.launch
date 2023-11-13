@@ -46,6 +46,8 @@
 			<param name="lidar_position" value="$(arg lidar1)"/>
 			<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
+			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_$(arg lidar1).yaml" />
+			<rosparam command="load" file="$(find fast_livo)/config/avia_resize_$(arg lidar1).yaml" />
 		</node>
 
 		<!-- 自動再起動 -->
@@ -84,7 +86,7 @@
 	<!-- GNSSデータ保存 -->
 	<node pkg="gnss_client" type="gnss_stream_saver.py" name="gnss_stream_saver" output="screen">
 		<param name="name_key" type="string" value="$(arg name_key)"/>
-		<param name="lidar_position" value="$(arg lidar_position)"/>
+		<param name="lidar_position" value="$(arg lidar1)"/>
 		<param name="coordinate_num" value="$(arg coordinate_num)"/>
 		<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
 		<rosparam command="load" file="$(find gnss_client)/config/rover.yaml"/>
