@@ -1497,7 +1497,7 @@ int main(int argc, char** argv)
     string points_dir_sub(points_dir_root + string(LIDAR_POSITION) + "/");
     string points_dir(points_dir_sub +  + "pointcloud/");
     string location_dir(points_dir_sub +  + "location/");
-    string coordinate_dir(points_dir_sub +  + "coordinate/");
+    string image_dir(points_dir_sub +  + "image/");
 
     if (!directoryExists(points_dir_root)) {
         createDirectory(points_dir_root);
@@ -1511,8 +1511,8 @@ int main(int argc, char** argv)
     if(!directoryExists(location_dir)){
         createDirectory(location_dir);
     }
-    if(!directoryExists(coordinate_dir)){
-        createDirectory(coordinate_dir);
+    if(!directoryExists(image_dir)){
+        createDirectory(image_dir);
     }
 
     // pcl_visual_wait_pub->clear();
@@ -1792,7 +1792,7 @@ int main(int argc, char** argv)
                 img_pub.publish(out_msg.toImageMsg());
 
                 publish_frame_world_rgb(pubLaserCloudFullResRgb, lidar_selector);
-                publish_visual_world_sub_map(pubSubVisualCloud);
+                //publish_visual_world_sub_map(pubSubVisualCloud);
                 
                 // *map_cur_frame_point = *pcl_wait_pub;
                 // mtx_buffer_pointcloud.unlock();
@@ -2212,9 +2212,9 @@ int main(int argc, char** argv)
 
         publish_frame_world(pubLaserCloudFullRes);
         //publish_visual_world_map(pubVisualCloud);
-        publish_effect_world(pubLaserCloudEffect);
+        //publish_effect_world(pubLaserCloudEffect);
         // publish_map(pubLaserCloudMap);
-        publish_path(pubPath);
+        // publish_path(pubPath);
         #ifdef DEPLOY
         publish_mavros(mavros_pose_publisher);
         #endif

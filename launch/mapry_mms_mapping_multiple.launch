@@ -7,7 +7,8 @@
 	<arg name="lidar1_scan_mode" default="1" /> <!-- 0: intensity, 1: RGB + intensity -->
 	<arg name="lidar2_scan_mode" default="1" /> <!-- 0: intensity, 1: RGB + intensity -->
 	<arg name="is_usb_saving" default="false" /> <!-- USBへの定期保存 -->
-	
+	<arg name="coordinate_num" default="1"/>
+
 	<!-- LIVOX-ROS-DRIVER 引数-->
 	<arg name="lvx_file_path" default="livox_test.lvx"/>
 	<arg name="bd_list" default="100000000000000"/>
@@ -39,6 +40,14 @@
 		</node>
 		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar1)_camera/image raw out:=/$(arg lidar1)_camera/image" output="screen"/>
 
+		<!-- カメラ画像保存 -->
+		<node pkg="Image_Capture" type="image_saver.py" name="image_saver" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" value="$(arg lidar1)"/>
+			<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
+			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
+		</node>
+
 		<!-- LIVOX-ROS-DRIVER -->
 		<param name="xfer_format" value="$(arg xfer_format)"/>
 		<param name="multi_topic" value="$(arg multi_topic)"/>
@@ -67,6 +76,15 @@
 				<rosparam command="load" file="$(find scan_data_archive)/config/params.yaml"/>
     		</node>
 		</group>
+
+		<!-- GNSSデータ保存 -->
+		<node pkg="gnss_client" type="gnss_stream_saver.py" name="gnss_stream_saver" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" value="$(arg lidar_position)"/>
+			<param name="coordinate_num" value="$(arg coordinate_num)"/>
+			<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
+			<rosparam command="load" file="$(find gnss_client)/config/rover.yaml"/>
+		</node>
 	</group>
 
 	<group ns="$(arg lidar2)">
@@ -87,6 +105,14 @@
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar2).yaml"/>
 		</node>
 		<node machine="back_jetson" pkg="image_transport" type="republish" name="republish_back" args="compressed in:=/$(arg lidar2)_camera/image raw out:=/$(arg lidar2)_camera/image" output="screen"/>
+
+		<!-- カメラ画像保存 -->
+		<node pkg="Image_Capture" type="image_saver.py" name="image_saver" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" value="$(arg lidar2)"/>
+			<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
+			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar2).yaml"/>
+		</node>
 
 		<!-- LIVOX-ROS-DRIVER -->
 		<param name="xfer_format" value="$(arg xfer_format)"/>

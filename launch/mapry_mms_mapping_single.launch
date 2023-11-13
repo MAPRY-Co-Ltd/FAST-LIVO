@@ -7,7 +7,7 @@
 	<arg name="lidar1_scan_mode" default="0" /> <!-- 0: intensity, 1: RGB + intensity -->
 	<arg name="is_usb_saving" default="false" /> <!-- USBへの定期保存 -->
 	<arg name="bag" default = "false" />
-
+	<arg name="coordinate_num" default="1"/>
 	
 	<!-- LIVOX-ROS-DRIVER 引数 -->
 	<arg name="lvx_file_path" default="livox_test.lvx"/>
@@ -39,7 +39,15 @@
 			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
 		</node>
 		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar1)_camera/image raw out:=/$(arg lidar1)_camera/image" output="screen"/>
-		
+
+		<!-- カメラ画像保存 -->
+		<node pkg="Image_Capture" type="image_saver.py" name="image_saver" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" value="$(arg lidar1)"/>
+			<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
+			<rosparam command="load" file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
+		</node>
+
 		<!-- 自動再起動 -->
 		<!-- respawn="true" -->
 
@@ -73,9 +81,18 @@
 		</group>
 	</group>
 
-	<group if="$(arg rviz)">
+	<!-- GNSSデータ保存 -->
+	<node pkg="gnss_client" type="gnss_stream_saver.py" name="gnss_stream_saver" output="screen">
+		<param name="name_key" type="string" value="$(arg name_key)"/>
+		<param name="lidar_position" value="$(arg lidar_position)"/>
+		<param name="coordinate_num" value="$(arg coordinate_num)"/>
+		<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
+		<rosparam command="load" file="$(find gnss_client)/config/rover.yaml"/>
+	</node>
+
+	<!-- <group if="$(arg rviz)">
 		<node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find fast_livo)/rviz_cfg/loam_livox_rgb.rviz" />
-	</group>
+	</group> -->
 
 	<group if="$(arg bag)">
 	  <node pkg="rosbag" type="record" name="record" args="-o $(find fast_livo)/bag/$(arg name_key) /livox/imu_front /livox/lidar_front /front_camera/image/compressed"/>
