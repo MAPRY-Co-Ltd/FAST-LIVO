@@ -41,7 +41,17 @@
 		<node pkg="image_transport" type="republish" name="republish" args="compressed in:=/$(arg lidar1)_camera/image raw out:=/$(arg lidar1)_camera/image" output="screen"/>
 
 		<!-- カメラ画像保存 -->
-		<node pkg="Image_Capture" type="image_saver.py" name="image_saver" output="screen">
+		<!-- <node pkg="Image_Capture" type="image_saver.py" name="image_saver" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" value="$(arg lidar1)"/>
+			<rosparam file="$(find gnss_client)/config/params.yaml"/>
+			<rosparam file="$(find Image_Capture)/config/camera_params_$(arg lidar1).yaml"/>
+			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_$(arg lidar1).yaml" />
+			<rosparam file="$(find fast_livo)/config/avia_resize_$(arg lidar1).yaml" />
+		</node> -->
+
+		<!-- 動画保存 -->
+		<node pkg="Image_Capture" type="video_saver.py" name="video_saver" output="screen">
 			<param name="name_key" type="string" value="$(arg name_key)"/>
 			<param name="lidar_position" value="$(arg lidar1)"/>
 			<rosparam file="$(find gnss_client)/config/params.yaml"/>
@@ -109,7 +119,17 @@
 		<node machine="back_jetson" pkg="image_transport" type="republish" name="republish_back" args="compressed in:=/$(arg lidar2)_camera/image raw out:=/$(arg lidar2)_camera/image" output="screen"/>
 
 		<!-- カメラ画像保存 -->
-		<node machine="back_jetson" pkg="Image_Capture" type="image_saver.py" name="image_saver" output="screen">
+		<!-- <node machine="back_jetson" pkg="Image_Capture" type="image_saver.py" name="image_saver" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<param name="lidar_position" value="$(arg lidar2)"/>
+			<rosparam file="$(find gnss_client)/config/params.yaml"/>
+			<rosparam file="$(find Image_Capture)/config/camera_params_$(arg lidar2).yaml"/>
+			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_$(arg lidar2).yaml" />
+			<rosparam file="$(find fast_livo)/config/avia_resize_$(arg lidar2).yaml" />
+		</node> -->
+
+		<!-- 動画保存 -->
+		<node machine="back_jetson" pkg="Image_Capture" type="video_saver.py" name="video_saver" output="screen">
 			<param name="name_key" type="string" value="$(arg name_key)"/>
 			<param name="lidar_position" value="$(arg lidar2)"/>
 			<rosparam file="$(find gnss_client)/config/params.yaml"/>
