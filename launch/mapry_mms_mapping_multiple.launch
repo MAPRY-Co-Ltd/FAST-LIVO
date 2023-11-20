@@ -28,6 +28,7 @@
 		<!-- FAST-LIVO -->
 		<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen" >
 			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_$(arg lidar1).yaml" />
+			<rosparam file="$(find fast_livo)/config/mapping_filter_$(arg lidar1_scan_mode).yaml" />
 			<rosparam file="$(find fast_livo)/config/avia_resize_$(arg lidar1).yaml" />
 			<param name="name_key" type="string" value="$(arg name_key)"/>			
 			<param name="img_enable" value="$(arg lidar1_scan_mode)"/>
@@ -106,6 +107,7 @@
 		<!-- FAST-LIVO -->
 		<node machine="back_jetson" name="laserMapping" pkg="fast_livo" type="fastlivo_mapping" >
 			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_$(arg lidar2).yaml" />
+			<rosparam file="$(find fast_livo)/config/mapping_filter_$(arg lidar2_scan_mode).yaml" />
 			<rosparam file="$(find fast_livo)/config/avia_resize_$(arg lidar2).yaml" />
 			<param name="name_key" type="string" value="$(arg name_key)"/>
 			<param name="img_enable" value="$(arg lidar2_scan_mode)"/>

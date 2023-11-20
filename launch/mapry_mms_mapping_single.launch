@@ -8,7 +8,7 @@
 	<arg name="is_usb_saving" default="false" /> <!-- USBへの定期保存 -->
 	<arg name="bag" default = "false" />
 	<arg name="coordinate_num" default="1"/>
-	
+
 	<!-- LIVOX-ROS-DRIVER 引数 -->
 	<arg name="lvx_file_path" default="livox_test.lvx"/>
 	<arg name="bd_list" default="100000000000000"/>
@@ -28,7 +28,8 @@
 		<!-- FAST-LIVO -->
 		<node pkg="fast_livo" type="fastlivo_mapping" name="laserMapping" output="screen" >
 			<rosparam file="$(find fast_livo)/config/camera_pinhole_resize_$(arg lidar1).yaml" />
-			<rosparam command="load" file="$(find fast_livo)/config/avia_resize_$(arg lidar1).yaml" />
+			<rosparam file="$(find fast_livo)/config/mapping_filter_$(arg lidar1_scan_mode).yaml" />
+			<rosparam file="$(find fast_livo)/config/avia_resize_$(arg lidar1).yaml" />
 			<param name="name_key" type="string" value="$(arg name_key)"/>			
 			<param name="img_enable" value="$(arg lidar1_scan_mode)"/>
 			<param name="lidar_position" type="string" value="$(arg lidar1)"/>
