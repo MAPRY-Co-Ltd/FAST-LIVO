@@ -8,6 +8,7 @@
 	<arg name="is_usb_saving" default="false" /> <!-- USBへの定期保存 -->
 	<arg name="bag" default = "false" />
 	<arg name="coordinate_num" default="1"/>
+	<arg name="version" default="1.0.0"/>
 
 	<!-- LIVOX-ROS-DRIVER 引数 -->
 	<arg name="lvx_file_path" default="livox_test.lvx"/>
@@ -21,6 +22,12 @@
 	<arg name="msg_frame_id" default="livox_frame"/>
 	<arg name="lidar_bag" default="true"/>
 	<arg name="imu_bag" default="true"/>
+	
+	<node pkg="scan_data_archive" type="version_saver.py" name="version_saver" output="screen">
+		<param name="name_key" type="string" value="$(arg name_key)"/>
+		<param name="version" value="$(arg version)"/>
+		<rosparam file="$(find scan_data_archive)/config/params.yaml"/>
+    </node>
 	
 	<group ns="$(arg lidar1)">
 		<!-- Master -->
