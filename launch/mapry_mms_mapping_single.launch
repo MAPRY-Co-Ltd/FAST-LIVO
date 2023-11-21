@@ -108,6 +108,12 @@
 			<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
 			<rosparam command="load" file="$(find gnss_client)/config/rover.yaml"/>
 		</node>
+
+		<!-- パラメータの保存-->
+		<node pkg="scan_data_archive" type="parameter_saver.py" name="parameter_saver" output="screen">
+			<param name="name_key" type="string" value="$(arg name_key)"/>
+			<rosparam file="$(find scan_data_archive)/config/params.yaml"/>
+		</node>
 	</group>
 
 	<!-- <group if="$(arg rviz)">
