@@ -117,7 +117,7 @@
 
 	<group ns="$(arg lidar2)">
 		<!-- Slave -->
-		<machine name="back_jetson" address="192.168.2.20" env-loader="/home/jetson/Mapry_MMS/command/back_host_environ.sh" user="jetson" password="CL30l3uwg3DTEZ1W" default="true"/>
+		<machine name="back_jetson" address="192.168.2.20" env-loader="/home/mapry/Mapry_MMS/command/back_host_environ.sh" user="mapry" password="CL30l3uwg3DTEZ1W" default="true"/>
 
 		<!-- FAST-LIVO -->
 		<node machine="back_jetson" name="laserMapping" pkg="fast_livo" type="fastlivo_mapping" >
