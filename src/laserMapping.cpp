@@ -367,7 +367,7 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  Cust
     V3D p_global(state.rot_end * (p_body + Lidar_offset_to_IMU) + state.pos_end);
     #endif
 
-    ros::Time current_time = ros::Time().fromSec(lidar_end_time);
+    ros::Time current_time = ros::Time().fromSec(last_timestamp_lidar);
 
     po->x = p_global(0);
     po->y = p_global(1);
@@ -2181,6 +2181,8 @@ int main(int argc, char** argv)
             local_pos_save_counter = 0;
             publish_scan_state_message("points count:" + std::to_string(points_counter), pubMmsScanState); // 点群数カウント
             points_counter = 0;
+
+            cout << "last_timestamp_lidar:" << ros::Time().fromSec(last_timestamp_lidar)  << std::endl;
         }
 
         for (int i = 0; i < size; i++)
@@ -2210,7 +2212,7 @@ int main(int argc, char** argv)
             scan_wait_num = 0;
         }
 
-        publish_frame_world(pubLaserCloudFullRes);
+        //publish_frame_world(pubLaserCloudFullRes);
         //publish_visual_world_map(pubVisualCloud);
         //publish_effect_world(pubLaserCloudEffect);
         // publish_map(pubLaserCloudMap);
