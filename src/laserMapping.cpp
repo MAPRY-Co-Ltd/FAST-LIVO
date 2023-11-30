@@ -98,7 +98,7 @@ condition_variable sig_buffer;
 // mutex mtx_buffer_pointcloud;
 
 string root_dir = ROOT_DIR;
-string map_file_path, lid_topic, imu_topic, img_topic, config_file, LIDAR_POSITION, SAVE_MAP_NAME;
+string map_file_path, lid_topic, lid_time_topic, imu_topic, img_topic, config_file, LIDAR_POSITION, SAVE_MAP_NAME;
 M3D Eye3d(M3D::Identity());
 M3F Eye3f(M3F::Identity());
 V3D Zero3d(0, 0, 0);
@@ -357,7 +357,7 @@ void pointBodyToWorld(const Matrix<T, 3, 1> &pi, Matrix<T, 3, 1> &po)
     po[2] = p_global(2);
 }
 
-void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  CustomPointT* const c_po)
+void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  CustomPointT* const c_po, const ros::Time& l_time)
 {
     V3D p_body(pi->x, pi->y, pi->z);
     #ifdef USE_IKFOM
@@ -366,8 +366,6 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  Cust
     #else
     V3D p_global(state.rot_end * (p_body + Lidar_offset_to_IMU) + state.pos_end);
     #endif
-
-    ros::Time current_time = ros::Time().fromSec(last_timestamp_lidar);
 
     po->x = p_global(0);
     po->y = p_global(1);
@@ -379,8 +377,8 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  Cust
     c_po->z = po->z;
 
     c_po->intensity = pi->intensity;
-    c_po->timestamp_sec = current_time.sec;
-    c_po->timestamp_nsec = current_time.nsec;
+    c_po->timestamp_sec = l_time.sec;
+    c_po->timestamp_nsec = l_time.nsec;
     c_po->raw_x = pi->x;
     c_po->raw_y = pi->y;
     c_po->raw_z = pi->z;
@@ -389,13 +387,6 @@ void RGBpointBodyToWorld(PointType const * const pi, PointType * const po,  Cust
     intensity = intensity - floor(intensity);
 
     int reflection_map = intensity*10000;
-
-    if(local_pos_save){
-        local_pos_save = false;
-        local_positions  << current_time.sec << "," << current_time.nsec << "," << state.pos_end(0) << "," << state.pos_end(1) << "," << state.pos_end(2) << ","
-                << geoQuat.x << "," << geoQuat.y << "," << geoQuat.z << "," << geoQuat.w << "\n";
-        local_positions.flush();
-    }
 }
 
 #ifndef USE_ikdforest
@@ -912,25 +903,26 @@ void publish_visual_world_sub_map(const ros::Publisher & pubSubVisualCloud)
     // mtx_buffer_pointcloud.unlock();
 }
 
-void publish_effect_world(const ros::Publisher & pubLaserCloudEffect)
-{
-    PointCloudXYZI::Ptr laserCloudWorld( \
-                    new PointCloudXYZI(effct_feat_num, 1));
+// void publish_effect_world(const ros::Publisher & pubLaserCloudEffect)
+// {
+//     PointCloudXYZI::Ptr laserCloudWorld( \
+//                     new PointCloudXYZI(effct_feat_num, 1));
 
-    pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB(new pcl::PointCloud<CustomPointT>(effct_feat_num, 1));
+//     pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB(new pcl::PointCloud<CustomPointT>(effct_feat_num, 1));
     
-    for (int i = 0; i < effct_feat_num; i++)
-    {
-        RGBpointBodyToWorld(&laserCloudOri->points[i], \
-                            &laserCloudWorld->points[i], \
-                            &laserCloudWorldRGB->points[i]);
-    }
-    sensor_msgs::PointCloud2 laserCloudFullRes3;
-    pcl::toROSMsg(*laserCloudWorld, laserCloudFullRes3);
-    laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-    laserCloudFullRes3.header.frame_id = "camera_init";
-    pubLaserCloudEffect.publish(laserCloudFullRes3);
-}
+//     for (int i = 0; i < effct_feat_num; i++)
+//     {
+//         RGBpointBodyToWorld(&laserCloudOri->points[i], \
+//                             &laserCloudWorld->points[i], \
+//                             &laserCloudWorldRGB->points[i],
+//                             );
+//     }
+//     sensor_msgs::PointCloud2 laserCloudFullRes3;
+//     pcl::toROSMsg(*laserCloudWorld, laserCloudFullRes3);
+//     laserCloudFullRes3.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
+//     laserCloudFullRes3.header.frame_id = "camera_init";
+//     pubLaserCloudEffect.publish(laserCloudFullRes3);
+// }
 
 void publish_map(const ros::Publisher & pubLaserCloudMap)
 {
@@ -1318,6 +1310,13 @@ void readParameters(ros::NodeHandle &nh, ros::NodeHandle &pnh)
         lid_topic = "/livox/lidar";
     }
 
+    if (pnh.hasParam("common/lid_time_topic"))
+    {
+        pnh.getParam("common/lid_time_topic", lid_time_topic);
+    }else{
+        lid_time_topic = "/mapry_lidar/scan_timestamp";
+    }
+
     if (pnh.hasParam("common/imu_topic"))
     { 
         pnh.getParam("common/imu_topic",imu_topic);
@@ -1542,6 +1541,8 @@ int main(int argc, char** argv)
 
     ros::Publisher pubMmsScanState = nh.advertise<std_msgs::String>
             ("/mms_scan_status", 1000);
+    ros::Publisher lidar_timestamp_pub = nh.advertise<std_msgs::String>
+            (lid_time_topic, 1);
 
 #ifdef DEPLOY
     ros::Publisher mavros_pose_publisher = nh.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10);
@@ -2179,17 +2180,35 @@ int main(int argc, char** argv)
         if(local_pos_save_counter > 10){
             local_pos_save = true;
             local_pos_save_counter = 0;
+
             publish_scan_state_message("points count:" + std::to_string(points_counter), pubMmsScanState); // 点群数カウント
             points_counter = 0;
+            
+            local_positions.flush(); // 1秒に一回ファイルフラッシュ
+            local_pos_save = false;
 
-            cout << "last_timestamp_lidar:" << ros::Time().fromSec(last_timestamp_lidar)  << std::endl;
+            //cout << "last_timestamp_lidar:" << ros::Time().fromSec(last_timestamp_lidar)  << std::endl;
+        }
+
+        ros::Time current_time = ros::Time().fromSec(last_timestamp_lidar);
+        local_positions  << current_time.sec << "," << current_time.nsec << "," << state.pos_end(0) << "," << state.pos_end(1) << "," << state.pos_end(2) << ","
+                        << geoQuat.x << "," << geoQuat.y << "," << geoQuat.z << "," << geoQuat.w << "\n";
+
+        // 点群の時刻をpublish
+        if( LIDAR_POSITION == "front"){
+            std::ostringstream time_stream;
+            time_stream << current_time;
+            std_msgs::String string_msg;
+            string_msg.data = time_stream.str();
+            lidar_timestamp_pub.publish(string_msg);
         }
 
         for (int i = 0; i < size; i++)
         {
             RGBpointBodyToWorld(&laserCloudFullRes->points[i], \
                                 &laserCloudWorld->points[i], \
-                                &laserCloudWorldRGB->points[i]);
+                                &laserCloudWorldRGB->points[i], \
+                                current_time);
         }
 
         *pcl_wait_pub = *laserCloudWorld;
@@ -2222,31 +2241,31 @@ int main(int argc, char** argv)
         #endif
 
         /*** Debug variables ***/
-        frame_num ++;
-        aver_time_consu = aver_time_consu * (frame_num - 1) / frame_num + (t5 - t0) / frame_num;
-        aver_time_icp = aver_time_icp * (frame_num - 1)/frame_num + (t_update_end - t_update_start) / frame_num;
-        aver_time_match = aver_time_match * (frame_num - 1)/frame_num + (match_time)/frame_num;
-        #ifdef USE_IKFOM
-        aver_time_solve = aver_time_solve * (frame_num - 1)/frame_num + (solve_time + solve_H_time)/frame_num;
-        aver_time_const_H_time = aver_time_const_H_time * (frame_num - 1)/frame_num + solve_time / frame_num;
-        #else
-        aver_time_solve = aver_time_solve * (frame_num - 1)/frame_num + (solve_time)/frame_num;
-        aver_time_const_H_time = aver_time_const_H_time * (frame_num - 1)/frame_num + solve_const_H_time / frame_num;
-        //cout << "construct H:" << aver_time_const_H_time << std::endl;
-        #endif
-        // aver_time_consu = aver_time_consu * 0.9 + (t5 - t0) * 0.1;
-        T1[time_log_counter] = LidarMeasures.lidar_beg_time;
-        s_plot[time_log_counter] = aver_time_consu;
-        s_plot2[time_log_counter] = kdtree_incremental_time;
-        s_plot3[time_log_counter] = kdtree_search_time/kdtree_search_counter;
-        s_plot4[time_log_counter] = featsFromMapNum;
-        s_plot5[time_log_counter] = t5 - t0;
-        time_log_counter ++;
+        // frame_num ++;
+        // aver_time_consu = aver_time_consu * (frame_num - 1) / frame_num + (t5 - t0) / frame_num;
+        // aver_time_icp = aver_time_icp * (frame_num - 1)/frame_num + (t_update_end - t_update_start) / frame_num;
+        // aver_time_match = aver_time_match * (frame_num - 1)/frame_num + (match_time)/frame_num;
+        // #ifdef USE_IKFOM
+        // aver_time_solve = aver_time_solve * (frame_num - 1)/frame_num + (solve_time + solve_H_time)/frame_num;
+        // aver_time_const_H_time = aver_time_const_H_time * (frame_num - 1)/frame_num + solve_time / frame_num;
+        // #else
+        // aver_time_solve = aver_time_solve * (frame_num - 1)/frame_num + (solve_time)/frame_num;
+        // aver_time_const_H_time = aver_time_const_H_time * (frame_num - 1)/frame_num + solve_const_H_time / frame_num;
+        // //cout << "construct H:" << aver_time_const_H_time << std::endl;
+        // #endif
+        // // aver_time_consu = aver_time_consu * 0.9 + (t5 - t0) * 0.1;
+        // T1[time_log_counter] = LidarMeasures.lidar_beg_time;
+        // s_plot[time_log_counter] = aver_time_consu;
+        // s_plot2[time_log_counter] = kdtree_incremental_time;
+        // s_plot3[time_log_counter] = kdtree_search_time/kdtree_search_counter;
+        // s_plot4[time_log_counter] = featsFromMapNum;
+        // s_plot5[time_log_counter] = t5 - t0;
+        // time_log_counter ++;
         // cout<<"[ mapping ]: time: fov_check "<< fov_check_time <<" fov_check and readd: "<<t1-t0<<" match "<<aver_time_match<<" solve "<<aver_time_solve<<" ICP "<<t3-t1<<" map incre "<<t5-t3<<" total "<<aver_time_consu << "icp:" << aver_time_icp << "construct H:" << aver_time_const_H_time <<endl;
         //printf("[ LIO ]: time: fov_check: %0.6f fov_check and readd: %0.6f match: %0.6f solve: %0.6f  ICP: %0.6f  map incre: %0.6f total: %0.6f icp: %0.6f construct H: %0.6f.\n",fov_check_time,t1-t0,aver_time_match,aver_time_solve,t3-t1,t5-t3,aver_time_consu,aver_time_icp, aver_time_const_H_time);
         if (lidar_en)
         {
-            euler_cur = RotMtoEuler(state.rot_end);
+            //euler_cur = RotMtoEuler(state.rot_end);
             // #ifdef USE_IKFOM
             // fout_out << setw(20) << LidarMeasures.last_update_time - first_lidar_time << " " << euler_cur.transpose()*57.3 << " " << state_point.pos.transpose() << " " << state_point.vel.transpose() \
             // <<" "<<state_point.bg.transpose()<<" "<<state_point.ba.transpose()<<" "<<state_point.grav<<" "<<feats_undistort->points.size()<<endl;

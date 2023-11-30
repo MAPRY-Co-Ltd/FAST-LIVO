@@ -21,6 +21,7 @@ pcd_save_interval: 800
 
 common:
     lid_topic:  "/livox/lidar_back"
+    lid_time_topic: "/mapry_lidar/scan_timestamp_back"
     imu_topic:  "/livox/imu_back"
 
 preprocess:

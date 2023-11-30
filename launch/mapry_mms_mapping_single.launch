@@ -107,6 +107,7 @@
 			<param name="coordinate_num" value="$(arg coordinate_num)"/>
 			<rosparam command="load" file="$(find gnss_client)/config/params.yaml"/>
 			<rosparam command="load" file="$(find gnss_client)/config/rover.yaml"/>
+			<rosparam file="$(find fast_livo)/config/avia_resize_$(arg lidar1).yaml" />
 		</node>
 
 		<!-- パラメータの保存-->
