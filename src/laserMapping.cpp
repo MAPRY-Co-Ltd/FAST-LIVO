@@ -747,11 +747,11 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
     //uint size = pcl_wait_pub->points.size();
     uint size = pcl_wait_rgbit->points.size();
 
-    PointCloudXYZRGB::Ptr laserCloudWorldRGB(new PointCloudXYZRGB(size, 1));
+    // PointCloudXYZRGB::Ptr laserCloudWorldRGB(new PointCloudXYZRGB(size, 1));
     pcl::PointCloud<CustomPointT>::Ptr laserCloudWorldRGB2(new pcl::PointCloud<CustomPointT>());
     if(img_en)
     {
-        laserCloudWorldRGB->clear();
+        // laserCloudWorldRGB->clear();
         laserCloudWorldRGB2->clear();
         //ros::Time current_time = ros::Time::now();
         //uint32_t timestamp_sec = current_time.sec;
@@ -764,6 +764,11 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
             pointT.x = pcl_wait_rgbit->points[i].x;
             pointT.y = pcl_wait_rgbit->points[i].y;
             pointT.z = pcl_wait_rgbit->points[i].z;
+
+            pointT.raw_x = pcl_wait_rgbit->points[i].raw_x;
+            pointT.raw_y = pcl_wait_rgbit->points[i].raw_y;
+            pointT.raw_z = pcl_wait_rgbit->points[i].raw_z;
+
             pointT.intensity = pcl_wait_rgbit->points[i].intensity;
             pointT.timestamp_sec = pcl_wait_rgbit->points[i].timestamp_sec;
             pointT.timestamp_nsec = pcl_wait_rgbit->points[i].timestamp_nsec;
@@ -778,15 +783,15 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
             {
                 cv::Mat img_rgb = lidar_selector->img_rgb;
                 V3F pixel = lidar_selector->getpixel(img_rgb, pc);
-                pointRGB.r = pixel[2];
-                pointRGB.g = pixel[1];
-                pointRGB.b = pixel[0];
+                // pointRGB.r = pixel[2];
+                // pointRGB.g = pixel[1];
+                // pointRGB.b = pixel[0];
 
                 pointT.r = pixel[2];
                 pointT.g = pixel[1];
                 pointT.b = pixel[0];
 
-                laserCloudWorldRGB->push_back(pointRGB);
+                //laserCloudWorldRGB->push_back(pointRGB);
                 laserCloudWorldRGB2->push_back(pointT);
             }
         }
@@ -794,23 +799,23 @@ void publish_frame_world_rgb(const ros::Publisher & pubLaserCloudFullRes, lidar_
 
     }
 
-    if (1)//if(publish_count >= PUBFRAME_PERIOD)
-    {
-        sensor_msgs::PointCloud2 laserCloudmsg;
-        if (img_en)
-        {
+    // if (1)//if(publish_count >= PUBFRAME_PERIOD)
+    // {
+        // sensor_msgs::PointCloud2 laserCloudmsg;
+        // if (img_en)
+        // {
             //cout<<"RGB pointcloud size: "<<laserCloudWorldRGB->size()<<endl;
-            pcl::toROSMsg(*laserCloudWorldRGB, laserCloudmsg);
-        }
-        else
-        {
-            pcl::toROSMsg(*pcl_wait_pub, laserCloudmsg);
-        }
-        laserCloudmsg.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
-        laserCloudmsg.header.frame_id = "camera_init";
-        pubLaserCloudFullRes.publish(laserCloudmsg);
-        publish_count -= PUBFRAME_PERIOD;
-    }
+            //pcl::toROSMsg(*laserCloudWorldRGB, laserCloudmsg);
+        // }
+        // else
+        // {
+        //     pcl::toROSMsg(*pcl_wait_pub, laserCloudmsg);
+        // }
+        // laserCloudmsg.header.stamp = ros::Time::now();//.fromSec(last_timestamp_lidar);
+        // laserCloudmsg.header.frame_id = "camera_init";
+        // pubLaserCloudFullRes.publish(laserCloudmsg);
+        // publish_count -= PUBFRAME_PERIOD;
+    // }
 }
 
 void publish_frame_world(const ros::Publisher & pubLaserCloudFullRes)
