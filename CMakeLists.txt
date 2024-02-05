@@ -112,8 +112,16 @@ add_executable(fastlivo_mapping src/laserMapping.cpp
                                 src/IMU_Processing.cpp
                                 src/preprocess.cpp
                                 )
+
+add_executable(fastlivo_mapping_hap src/laserMapping_HAP.cpp 
+                                src/IMU_Processing.cpp
+                                src/preprocess.cpp
+                                )
 target_link_libraries(fastlivo_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} vio ikdtree)
 target_include_directories(fastlivo_mapping PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+target_link_libraries(fastlivo_mapping_hap ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} vio ikdtree)
+target_include_directories(fastlivo_mapping_hap PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 # add_executable(kd_tree_test include/ikd-Tree/ikd_Tree.cpp src/kd_tree_test.cpp)
 # target_link_libraries(kd_tree_test ${PCL_LIBRARIES})

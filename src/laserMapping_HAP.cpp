@@ -610,7 +610,7 @@ bool sync_packages(LidarMeasureGroup &meas)
     
     if (!lidar_pushed) { // If not in lidar scan, need to generate new meas
         if (lidar_buffer.empty()) {
-            // ROS_ERROR("out sync");
+            //ROS_ERROR("out sync: 613");
             return false;
         }
 
@@ -628,7 +628,7 @@ bool sync_packages(LidarMeasureGroup &meas)
             }
             mtx_buffer.unlock();
             sig_buffer.notify_all();
-            // ROS_ERROR("out sync");
+            //ROS_ERROR("out sync: 631");
             return false;
         }
         sort(meas.lidar->points.begin(), meas.lidar->points.end(), time_list); // sort by sample timestamp
@@ -639,8 +639,9 @@ bool sync_packages(LidarMeasureGroup &meas)
 
     //cout<<"img_buffer.empty(): "<<img_buffer.empty()<<endl;
     if (img_buffer.empty()) { // no img topic, means only has lidar topic
-        if (last_timestamp_imu < lidar_end_time+0.02) { // imu message needs to be larger than lidar_end_time, keep complete propagate.
-            // ROS_ERROR("out sync");
+        if (last_timestamp_imu < lidar_end_time) {
+        //if (last_timestamp_imu < lidar_end_time+0.02) { // imu message needs to be larger than lidar_end_time, keep complete propagate.
+            ROS_ERROR("out sync: 643");
             return false;
         }
         struct MeasureGroup m; //standard method to keep imu message.
@@ -660,7 +661,7 @@ bool sync_packages(LidarMeasureGroup &meas)
         lidar_pushed = false; // sync one whole lidar scan.
         meas.is_lidar_end = true; // process lidar topic, so timestamp should be lidar scan end.
         meas.measures.push_back(m);
-        // ROS_ERROR("out sync");
+        //ROS_ERROR("out sync: 663");
         return true;
     }
     struct MeasureGroup m;
@@ -671,7 +672,7 @@ bool sync_packages(LidarMeasureGroup &meas)
     { // has img topic, but img topic timestamp larger than lidar end time, process lidar topic.
         if (last_timestamp_imu < lidar_end_time+0.02) 
         {
-            // ROS_ERROR("out sync");
+            ROS_ERROR("out sync: 674");
             return false;
         }
         double imu_time = imu_buffer.front()->header.stamp.toSec();
@@ -697,7 +698,7 @@ bool sync_packages(LidarMeasureGroup &meas)
         double img_start_time = img_time_buffer.front(); // process img topic, record timestamp
         if (last_timestamp_imu < img_start_time) 
         {
-            // ROS_ERROR("out sync");
+            ROS_ERROR("out sync: 700");
             return false;
         }
         double imu_time = imu_buffer.front()->header.stamp.toSec();
@@ -719,7 +720,7 @@ bool sync_packages(LidarMeasureGroup &meas)
         meas.is_lidar_end = false; // has img topic in lidar scan, so flag "is_lidar_end=false" 
         meas.measures.push_back(m);
     }
-    // ROS_ERROR("out sync");
+    ROS_ERROR("out sync: 722");
     return true;
 }
 
@@ -1703,7 +1704,7 @@ int main(int argc, char** argv)
 
         if (feats_undistort->empty() || (feats_undistort == nullptr))
         {
-            //cout<<" No point!!!"<<endl;
+            cout<<" No point!!!"<<endl;
             if (!fast_lio_is_ready)
             {
                 first_lidar_time = LidarMeasures.lidar_beg_time;

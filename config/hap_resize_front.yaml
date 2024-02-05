@@ -1,0 +1,49 @@
+feature_extract_enable : 0
+max_iteration : 10
+dense_map_enable : 1
+filter_size_surf : 0.15
+filter_size_map : 0.3
+cube_side_length : 20
+debug : 0
+grid_size : 40
+patch_size : 8
+lidar_enable : 1
+outlier_threshold : 300 # 78 100 156
+ncc_en: false
+ncc_thre: 0
+img_point_cov : 100 # 1000
+laser_point_cov : 0.001 # 0.001
+cam_fx: 736.8028063695381
+cam_fy: 736.4126675073701
+cam_cx: 624.7784857216617
+cam_cy: 499.76270756008734
+pcd_save_interval: 500
+
+common:
+    lid_topic:  "/livox/lidar_front"
+    lid_time_topic: "/mapry_lidar/scan_timestamp_front"
+    imu_topic:  "/livox/imu_front"
+
+preprocess:
+    lidar_type: 1 # Livox Avia LiDAR
+    scan_line: 6
+    blind: 0.5 # blind x m disable
+
+mapping:
+    acc_cov_scale: 100
+    gyr_cov_scale: 10000
+    fov_degree:    120
+    extrinsic_T: [ 0.0, 0.0, 0.0 ]
+    extrinsic_R: [ 1, 0, 0,
+                   0, 1, 0,
+                   0, 0, 1]
+
+camera:
+    # img_topic: /usb_cam/image_raw
+    # img_topic:  /camera/image_color
+    img_topic: /front_camera/image
+    #xiyuan
+    Rcl: [-0.00217314,-0.999391,-0.0348391,
+         -0.0245252,0.0348819,-0.99909,
+          0.999697,-0.00131673,-0.024586]
+    Pcl: [0.00763298, 0.0673577, -0.133728]
